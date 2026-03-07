@@ -14,9 +14,9 @@
   --win:#4caf7d;--lose:#e8734a;--ene:#9b6dff;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--txt);font-family:'Noto Sans JP',sans-serif;min-height:100vh;display:flex;}
+body{background:var(--bg);color:var(--txt);font-family:'Noto Sans JP',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
 
-.app{display:flex;flex:1;}
+.app{display:flex;flex:1;min-height:0;}
 .sidebar{width:250px;flex-shrink:0;background:var(--sur);border-right:1px solid var(--bdr);display:flex;flex-direction:column;padding:16px 0;overflow-y:auto;transition:transform .25s;}
 .main{flex:1;display:flex;flex-direction:column;min-width:0;}
 
@@ -1158,15 +1158,12 @@ for(const g in data)openG[g]=true;
 renderSidebar();
 selOverall();
 </script>
-</div> 
-<div style="width: 100%; clear: both; margin-top: 50px; border-top: 1px solid #444; background: #0f1117;">
-<div style="max-width: 600px; margin: 0 auto; padding: 30px 20px; font-size: 13px; color: #888; text-align: center; line-height: 1.6;">
-     <h3 style="color: #ccc; margin-bottom: 10px;">プライバシーポリシー</h3>
-     <p>当サイトでは、第三者配信の広告サービス「Googleアドセンス」を利用しています。</p>
-     <p>広告配信事業者は、ユーザーの興味に応じた商品やサービスの広告を表示するため、クッキー（Cookie）を使用することがあります。</p>
-     <p>Cookieを無効にする方法や詳細は、<a href="https://policies.google.com/technologies/ads?hl=ja" style="color: #5b8dee; text-decoration: none;">「Googleポリシーと規約」</a>をご覧ください。</p>
-</div>
+<div style="width:100%;margin-top:40px;border-top:1px solid #2a2a2a;background:#0f1117;padding:16px 16px 24px;box-sizing:border-box">
+  <p style="font-size:10px;color:#555;text-align:center;line-height:1.7;margin:0 auto;max-width:500px">
+    <span style="display:block;font-size:10px;color:#666;margin-bottom:4px;letter-spacing:.05em">プライバシーポリシー</span>
+    当サイトではGoogleアドセンスを利用しています。広告配信事業者はCookieを使用することがあります。
+    詳細は<a href="https://policies.google.com/technologies/ads?hl=ja" style="color:#4a6fa8;text-decoration:none">Googleポリシーと規約</a>をご覧ください。
+  </p>
 </div>
 </body>
 </html>
-
