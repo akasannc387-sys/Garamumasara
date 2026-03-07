@@ -13,9 +13,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--txt);font-family:'Noto Sans JP',sans-serif;min-height:100vh;display:flex;}
-a{color:inherit;}
 
-/* layout */
 .app{display:flex;flex:1;}
 .sidebar{width:250px;flex-shrink:0;background:var(--sur);border-right:1px solid var(--bdr);display:flex;flex-direction:column;padding:16px 0;overflow-y:auto;transition:transform .25s;}
 .main{flex:1;display:flex;flex-direction:column;min-width:0;}
@@ -56,11 +54,10 @@ a{color:inherit;}
 .ctitle.my{color:var(--acc);}
 .ctitle.en{color:var(--ene);}
 
-/* inputs */
-.chars{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:7px;align-items:end;margin-bottom:8px;}
+/* char inputs - 3 columns */
+.chars{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;}
 .cwrap{display:flex;flex-direction:column;gap:3px;}
 .chint{font-family:'JetBrains Mono',monospace;font-size:.56rem;color:var(--mut);text-align:center;}
-.csep{color:var(--bdr);font-size:1.1rem;padding-bottom:7px;}
 input[type=text]{width:100%;padding:8px 11px;background:var(--sur2);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);font-family:'Noto Sans JP',sans-serif;font-size:16px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none;}
 input:focus{border-color:var(--acc);}
 input.ei:focus{border-color:var(--ene);}
@@ -132,6 +129,11 @@ button:hover{opacity:.82;}
 .stab.my.on{color:var(--acc);}
 .stab.en.on{color:var(--ene);}
 
+/* suggest */
+.sug-list{position:fixed;background:var(--sur2);border:1px solid var(--acc);border-radius:6px;z-index:300;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.5);display:none;}
+.sug-item{padding:9px 12px;font-size:.84rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .1s;}
+.sug-item:hover{background:rgba(91,141,238,.15);color:var(--acc);}
+
 /* welcome / empty */
 .welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:55vh;text-align:center;gap:10px;}
 .wico{font-size:2.8rem;opacity:.25;}
@@ -151,7 +153,6 @@ button:hover{opacity:.82;}
 
 /* mobile */
 @media(max-width:680px){
-  input[type=text]{font-size:16px;}
   .sidebar{position:fixed;top:0;left:0;height:100vh;z-index:200;transform:translateX(-100%);box-shadow:4px 0 20px rgba(0,0,0,.4);}
   .sidebar.on{transform:translateX(0);}
   .doverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;}
@@ -159,8 +160,6 @@ button:hover{opacity:.82;}
   .hbg{display:flex;}
   .tab{padding:13px 11px;font-size:.62rem;letter-spacing:0;}
   .panel{padding:14px 12px 70px;}
-  .chars{grid-template-columns:1fr 1fr 1fr;gap:5px;}
-  .csep{display:none;}
   .grid2{grid-template-columns:1fr;}
   .slayout{grid-template-columns:1fr;}
   .card{padding:13px;}
@@ -176,16 +175,19 @@ button:hover{opacity:.82;}
     <div class="s-title">編成<span>.log</span></div>
     <div class="s-sub">モード / ステージ / キャラ</div>
   </div>
+  <div id="OB" onclick="selOverall()" style="display:flex;align-items:center;gap:8px;padding:7px 14px;margin:4px 8px 8px;cursor:pointer;border-radius:6px;font-size:.78rem;font-weight:700;color:var(--mut);transition:all .15s;">
+    <span style="font-size:.9rem">🏆</span><span>総合戦績</span>
+  </div>
   <div id="ST"></div>
-  <button class="s-add" onclick="openModal('genre')">＋ モードを追加</button>
+  <button class="s-add" onclick="openModal('genre')">＋ ゲームモードを追加</button>
 </div>
 
 <div class="main">
   <div class="tabs">
     <button class="hbg" onclick="toggleDrawer()">☰</button>
     <button class="tab on" id="T0" onclick="sw(0)">✏️ 記録</button>
-    <button class="tab"    id="T1" onclick="sw(1)">📊 集計</button>
-    <button class="tab"    id="T2" onclick="sw(2)">🔍 検索</button>
+    <button class="tab"    id="T1" onclick="sw(1)" data-norm="📊 集計" data-ov="📊 キャラクター戦績">📊 集計</button>
+    <button class="tab"    id="T2" onclick="sw(2)" data-norm="🔍 検索" data-ov="🔍 全体検索">🔍 検索</button>
   </div>
 
   <!-- 記録 -->
@@ -202,11 +204,18 @@ button:hover{opacity:.82;}
       <div class="card my">
         <div class="ctitle my">⚔️ 自分の編成</div>
         <div class="chars">
-          <div class="cwrap"><input type="text" id="w1" placeholder="キャラ 1"><span class="chint">CHAR 1</span></div>
-          <span class="csep">·</span>
-          <div class="cwrap"><input type="text" id="w2" placeholder="キャラ 2"><span class="chint">CHAR 2</span></div>
-          <span class="csep">·</span>
-          <div class="cwrap"><input type="text" id="w3" placeholder="キャラ 3"><span class="chint">CHAR 3</span></div>
+          <div class="cwrap">
+            <input type="text" id="w1" data-side="my" autocomplete="off" placeholder="キャラ 1">
+            <span class="chint">CHAR 1</span>
+          </div>
+          <div class="cwrap">
+            <input type="text" id="w2" data-side="my" autocomplete="off" placeholder="キャラ 2">
+            <span class="chint">CHAR 2</span>
+          </div>
+          <div class="cwrap">
+            <input type="text" id="w3" data-side="my" autocomplete="off" placeholder="キャラ 3">
+            <span class="chint">CHAR 3</span>
+          </div>
         </div>
       </div>
       <div class="rtog">
@@ -217,11 +226,18 @@ button:hover{opacity:.82;}
       <div class="card en">
         <div class="ctitle en">🛡️ 敵の編成</div>
         <div class="chars">
-          <div class="cwrap"><input type="text" id="e1" class="ei" placeholder="キャラ 1"><span class="chint">CHAR 1</span></div>
-          <span class="csep">·</span>
-          <div class="cwrap"><input type="text" id="e2" class="ei" placeholder="キャラ 2"><span class="chint">CHAR 2</span></div>
-          <span class="csep">·</span>
-          <div class="cwrap"><input type="text" id="e3" class="ei" placeholder="キャラ 3"><span class="chint">CHAR 3</span></div>
+          <div class="cwrap">
+            <input type="text" id="e1" data-side="enemy" autocomplete="off" class="ei" placeholder="キャラ 1">
+            <span class="chint">CHAR 1</span>
+          </div>
+          <div class="cwrap">
+            <input type="text" id="e2" data-side="enemy" autocomplete="off" class="ei" placeholder="キャラ 2">
+            <span class="chint">CHAR 2</span>
+          </div>
+          <div class="cwrap">
+            <input type="text" id="e3" data-side="enemy" autocomplete="off" class="ei" placeholder="キャラ 3">
+            <span class="chint">CHAR 3</span>
+          </div>
         </div>
       </div>
       <button class="btnp" onclick="addEntry()">記録する</button>
@@ -229,10 +245,42 @@ button:hover{opacity:.82;}
     </div>
   </div>
 
+  <!-- 総合勝率（総合戦績モード時P0に表示） -->
+  <div id="OV_P0" style="display:none">
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:1.1rem">🏆</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:.88rem">総合戦績</span>
+    </div>
+    <div id="OV_SUMMARY2" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px"></div>
+    <div id="OV_WINRATE2"></div>
+  </div>
+
   <!-- 集計 -->
   <div class="panel" id="P1">
     <div id="W1" class="welcome"><div class="wico">📊</div><div class="wtxt">ステージを選択してください</div></div>
     <div id="F1" style="display:none">
+      <!-- 通常の集計コンテンツ -->
+      <div id="OV_P1_CHAR" style="display:none">
+        <div style="margin-bottom:14px">
+          <div class="stabs" style="margin-bottom:10px">
+            <button class="stab on" id="oTab0" onclick="swOvChar(0)">全体</button>
+            <button class="stab my" id="oTab1" onclick="swOvChar(1)">⚔️ 自チーム</button>
+            <button class="stab en" id="oTab2" onclick="swOvChar(2)">🛡️ 敵チーム</button>
+          </div>
+          <div class="card" id="oCharCard">
+            <div class="rhead"><span class="rlbl" id="oCharLbl">全体</span><span class="rtot" id="oact"></span><span class="rtot" id="omct" style="display:none"></span><span class="rtot" id="oect" style="display:none"></span></div>
+            <div id="oacr"></div>
+            <div id="omcr" style="display:none"></div>
+            <div id="oecr" style="display:none"></div>
+          </div>
+          <div class="divider">📋 頻出編成</div>
+          <div class="grid2">
+            <div class="card"><div class="rhead"><span class="rlbl my">自チーム</span><span class="rtot" id="omft"></span></div><div id="omfr"></div></div>
+            <div class="card"><div class="rhead"><span class="rlbl en">敵チーム</span><span class="rtot" id="oeft"></span></div><div id="oefr"></div></div>
+          </div>
+        </div>
+      </div>
+      <div id="OV_P1_NORM">
       <div style="margin-bottom:16px" id="BC1"></div>
       <div class="divider">⚔️ 自分の編成</div>
       <div class="grid2">
@@ -244,19 +292,43 @@ button:hover{opacity:.82;}
         <div class="card"><div class="rhead"><span class="rlbl en">頻出キャラ</span><span class="rtot" id="ect"></span></div><div id="ecr"></div></div>
         <div class="card"><div class="rhead"><span class="rlbl en">頻出編成</span><span class="rtot" id="eft"></span></div><div id="efr"></div></div>
       </div>
+    </div><!-- /OV_P1_NORM -->
     </div>
+  </div>
+
+  <!-- 総合戦績 -->
+  <div class="panel" id="P3">
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:1.1rem">🏆</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:.88rem">総合戦績</span>
+    </div>
+    <div id="OV_SUMMARY" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px"></div>
+    <div id="OV_WINRATE"></div>
   </div>
 
   <!-- 検索 -->
   <div class="panel" id="P2">
+    <!-- 総合検索（総合戦績モード時） -->
+    <div id="OV_P2_SEARCH" style="display:none">
+      <div class="stabs" style="margin-bottom:12px">
+        <button class="stab on"    id="ovSAll" onclick="setOvSide('all')">🌐 全体</button>
+        <button class="stab my" id="ovSMy"  onclick="setOvSide('my')">⚔️ 自分の編成</button>
+        <button class="stab en" id="ovSEn"  onclick="setOvSide('enemy')">🛡️ 敵の編成</button>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="ctitle" id="ovSQ">キャラで検索</div>
+        <input type="text" id="ovSI" placeholder="キャラ名を入力…">
+      </div>
+      <div id="ovSR"></div>
+    </div>
     <div id="W2" class="welcome"><div class="wico">🔍</div><div class="wtxt">ステージを選択してください</div></div>
     <div id="F2" style="display:none">
       <div style="margin-bottom:16px" id="BC2"></div>
       <div class="slayout">
         <div>
           <div class="stabs">
-            <button class="stab my on" id="sMy"  onclick="setSide('my')">⚔️ 自分の編成で検索</button>
-            <button class="stab en"    id="sEn"  onclick="setSide('enemy')">🛡️ 敵の編成で検索</button>
+            <button class="stab my on" id="sMy" onclick="setSide('my')">⚔️ 自分の編成で検索</button>
+            <button class="stab en"    id="sEn" onclick="setSide('enemy')">🛡️ 敵の編成で検索</button>
           </div>
           <div class="card">
             <div class="ctitle" id="SQ">キャラで検索</div>
@@ -273,6 +345,16 @@ button:hover{opacity:.82;}
   </div>
 </div>
 </div>
+
+<!-- サジェストリスト（body直下、z-index:300） -->
+<div class="sug-list" id="SLw1"></div>
+<div class="sug-list" id="SLw2"></div>
+<div class="sug-list" id="SLw3"></div>
+<div class="sug-list" id="SLe1"></div>
+<div class="sug-list" id="SLe2"></div>
+<div class="sug-list" id="SLe3"></div>
+<div class="sug-list" id="SLSI"></div>
+<div class="sug-list" id="SLovSI"></div>
 
 <div class="doverlay" id="DO" onclick="closeDrawer()"></div>
 
@@ -307,7 +389,7 @@ let data=JSON.parse(localStorage.getItem(SK)||'{}');
   }
 })();
 
-let G=null,S=null,mMode=null,res='○',tab=0,side='my',openG={};
+let G=null,S=null,res='○',tab=0,side='my',openG={},isOverall=false;
 const MAX=20;
 
 function save(){localStorage.setItem(SK,JSON.stringify(data));}
@@ -315,25 +397,42 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function $(id){return document.getElementById(id);}
 function mc(i){return['g','s','b'][i]||'';}
 function rc(r){return r>=60?'hi':r>=35?'md':'lo';}
-function score(s){return s.maru;}  // total*winRate = maru (since maru = total * rate)
 function byScore(arr){return arr.sort((a,b)=>b[1].maru-a[1].maru||b[1].total-a[1].total);}
-
 function showMsg(id,txt,type){const el=$(id);el.textContent=txt;el.className='msg '+type;setTimeout(()=>{el.textContent='';el.className='msg';},3000);}
-
-function bc(g,s){return`<span style="font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--mut)">${esc(g)} / </span><span style="font-family:'JetBrains Mono',monospace;font-size:.88rem">${esc(s)}</span>`;}
+function bcHTML(g,s){return`<span style="font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--mut)">${esc(g)} / </span><span style="font-family:'JetBrains Mono',monospace;font-size:.88rem">${esc(s)}</span>`;}
 
 // ===== TABS =====
 function sw(n){
   tab=n;
-  [0,1,2].forEach(i=>{$('T'+i).classList.toggle('on',i===n);$('P'+i).classList.toggle('on',i===n);});
-  if(n===1)renderRanks();
-  if(n===2)runSearch();
+  if(isOverall){
+    // 総合戦績モード: T0非表示、T1=勝率、T2=頻出キャラ
+    [0,1,2].forEach(i=>{$('T'+i).classList.toggle('on',i===n);});
+    $('P3').classList.remove('on');
+    // P0: 総合勝率、P1: 頻出キャラ、P2非表示
+    $('P0').classList.toggle('on',n===0);
+    $('P1').classList.toggle('on',n===1);
+    $('P2').classList.toggle('on',n===2);
+    $('OV_P0').style.display=n===0?'block':'none';
+    $('W0').style.display='none';$('F0').style.display='none';
+    $('OV_P1_CHAR').style.display=n===1?'block':'none';
+    $('OV_P1_NORM').style.display='none';
+    $('W1').style.display='none';
+    $('F1').style.display=n===1?'block':'none';
+    $('OV_P2_SEARCH').style.display=n===2?'block':'none';
+    $('W2').style.display='none';$('F2').style.display='none';
+    if(n===1)swOvChar(0);
+    if(n===2){$('ovSI').value='';$('ovSR').innerHTML='';setOvSide('all');}
+  } else {
+    [0,1,2].forEach(i=>{$('T'+i).classList.toggle('on',i===n);$('P'+i).classList.toggle('on',i===n);});
+    $('P3').classList.remove('on');
+    if(n===1)renderRanks();
+    if(n===2)runSearch();
+  }
 }
 
 // ===== SIDEBAR =====
 function renderSidebar(){
-  const el=$('ST');
-  el.innerHTML=Object.keys(data).map(g=>`
+  $('ST').innerHTML=Object.keys(data).map(g=>`
     <div>
       <div class="g-row ${openG[g]?'open':''}" onclick="toggleG('${esc(g)}')">
         <span style="display:flex;align-items:center;gap:5px"><span style="color:var(--mut)">▸</span>${esc(g)}</span>
@@ -349,15 +448,64 @@ function renderSidebar(){
     </div>`).join('');
 }
 function toggleG(g){openG[g]=!openG[g];renderSidebar();}
-function selTag(g,t){G=g;S=t;closeDrawer();renderSidebar();updatePanels();}
+function exitOverall(){
+  if(!isOverall)return;
+  isOverall=false;
+  $('T0').textContent='✏️ 記録';
+  $('T1').textContent=$('T1').dataset.norm;
+  $('T2').textContent=$('T2').dataset.norm;
+  $('OV_P0').style.display='none';
+  $('OV_P1_CHAR').style.display='none';
+  $('OV_P1_NORM').style.display='block';
+  $('OV_P2_SEARCH').style.display='none';
+  $('W2').style.display='';
+  $('F2').style.display='';
+  $('OB').style.color='var(--mut)';$('OB').style.background='';
+}
+function selTag(g,t){G=g;S=t;exitOverall();closeDrawer();renderSidebar();updatePanels();$('P3').classList.remove('on');}
+function swOvChar(n){
+  [0,1,2].forEach(i=>$('oTab'+i).classList.toggle('on',i===n));
+  const lbls=['全体','⚔️ 自チーム','🛡️ 敵チーム'];
+  const cls=['','my','en'];
+  $('oCharLbl').textContent=lbls[n];
+  $('oCharLbl').className='rlbl'+(cls[n]?' '+cls[n]:'');
+  const tots=['oact','omct','oect'];
+  const cntns=['oacr','omcr','oecr'];
+  tots.forEach((id,i)=>{const el=$(id);if(el)el.style.display=i===n?'':'none';});
+  cntns.forEach((id,i)=>{const el=$(id);if(el)el.style.display=i===n?'':'none';});
+}
+function selOverall(){
+  G=null;S=null;isOverall=true;
+  closeDrawer();
+  // タブラベルを総合モード用に切り替え
+  $('T0').textContent='🏆 総合';
+  $('T1').textContent=$('T1').dataset.ov;
+  $('T2').textContent=$('T2').dataset.ov;
+  $('OV_P2_SEARCH').style.display='none';
+  $('T0').style.display='';
+  $('OB').style.color='var(--acc)';$('OB').style.background='rgba(91,141,238,.1)';
+  // P3非表示、P0=勝率として表示
+  [0,1,2].forEach(i=>{$('P'+i).classList.remove('on');});$('P3').classList.remove('on');
+  $('P0').classList.add('on');
+  $('W0').style.display='none';$('F0').style.display='none';
+  $('OV_P0').style.display='block';
+  $('OV_P1_NORM').style.display='none';
+  $('OV_P1_CHAR').style.display='none';
+  tab=0;
+  $('T0').classList.add('on');$('T1').classList.remove('on');$('T2').classList.remove('on');
+  renderSidebar();
+  renderOverall();
+}
 
 // ===== PANELS =====
 function updatePanels(){
+  exitOverall();
+  $('P3').classList.remove('on');
   const has=G&&S;
   [0,1,2].forEach(i=>{
     $('W'+i).style.display=has?'none':'flex';
     $('F'+i).style.display=has?'block':'none';
-    if(has) $('BC'+i).innerHTML=bc(G,S);
+    if(has)$('BC'+i).innerHTML=bcHTML(G,S);
   });
   if(has){
     renderHistory();
@@ -366,49 +514,160 @@ function updatePanels(){
   }
 }
 
-// ===== STATS HELPERS =====
+// ===== STATS =====
 function charStats(entries,key){
-  const st={};
   const win=key==='my'?'○':'✕';
-  entries.forEach(e=>e[key].forEach(c=>{if(c==='?')return;if(!st[c])st[c]={total:0,maru:0};st[c].total++;if(e.result===win)st[c].maru++;}));
+  const st={};
+  entries.forEach(e=>e[key].forEach(c=>{
+    if(c==='?')return;
+    if(!st[c])st[c]={total:0,maru:0};
+    st[c].total++;
+    if(e.result===win)st[c].maru++;
+  }));
   return byScore(Object.entries(st));
 }
 function comboStats(entries,key){
+  const win=key==='my'?'○':'✕';
   const st={};
   entries.forEach(e=>{
     if(key==='enemy'&&e.enemy.every(c=>c==='?'))return;
     const k=[...e[key]].sort().join(' / ');
     if(!st[k])st[k]={total:0,maru:0};
-    st[k].total++;if(e.result===(key==='my'?'○':'✕'))st[k].maru++;
+    st[k].total++;
+    if(e.result===win)st[k].maru++;
   });
   return byScore(Object.entries(st));
 }
 
-function rankHTML(sorted,max,rowFn){
-  if(!sorted.length)return'<div class="empty">まだ記録がありません</div>';
-  return sorted.slice(0,10).map(([key,s],i)=>{
-    const rate=Math.round(s.maru/s.total*100);
-    return`<div class="ritem" style="animation:fi .18s ease">
-      <span class="rn ${mc(i)}">${i+1}</span>
-      ${rowFn(key,i)}
-      <div class="bar-w"><div class="bar ${i===0?'g':''}" style="width:${Math.round(s.total/max*100)}%"></div></div>
-      <span class="rcnt">${s.total}回</span>
-      <span class="rate ${rc(rate)}">○${rate}%</span>
-    </div>`;
-  }).join('');
+function rankRow(key,s,i,rowFn,isEnemy){
+  const rate=Math.round(s.maru/s.total*100);
+  return`<div class="ritem" style="animation:fi .18s ease">
+    <span class="rn ${mc(i)}">${i+1}</span>
+    ${rowFn(key,i)}
+    <div class="bar-w"><div class="bar ${isEnemy?'e':''} ${i===0?'g':''}" style="width:${Math.round(s.total/(s._max||1)*100)}%"></div></div>
+    <span class="rcnt">${s.total}回</span>
+    <span class="rate ${rc(rate)}">○${rate}%</span>
+  </div>`;
 }
-function enemyRankHTML(sorted,max,rowFn){
+function rankHTML(sorted,rowFn,isEnemy){
   if(!sorted.length)return'<div class="empty">まだ記録がありません</div>';
-  return sorted.slice(0,10).map(([key,s],i)=>{
-    const rate=Math.round(s.maru/s.total*100);
-    return`<div class="ritem" style="animation:fi .18s ease">
-      <span class="rn ${mc(i)}">${i+1}</span>
-      ${rowFn(key,i)}
-      <div class="bar-w"><div class="bar e ${i===0?'g':''}" style="width:${Math.round(s.total/max*100)}%"></div></div>
-      <span class="rcnt">${s.total}回</span>
-      <span class="rate ${rc(rate)}">○${rate}%</span>
+  const max=sorted[0][1].total;
+  return sorted.slice(0,10).map(([k,s],i)=>{s._max=max;return rankRow(k,s,i,rowFn,isEnemy);}).join('');
+}
+
+// ===== OVERALL =====
+function getAllEntries(){
+  const all=[];
+  for(const g in data)for(const s in data[g])all.push(...data[g][s]);
+  return all;
+}
+// 各ステージの末尾から順に最新50件を集める
+function getRecentEntries(n=50){
+  const all=[];
+  for(const g in data)for(const s in data[g]){
+    const en=data[g][s];
+    all.push(...en.slice(-n).map(e=>({...e,_g:g,_s:s})));
+  }
+  // 各ステージ内の順序を保ちつつ末尾n件に絞り、全体でも末尾n件
+  return all.slice(-n);
+}
+function renderOverall(){
+  const all=getAllEntries();
+  const total=all.length;
+  const wins=all.filter(e=>e.result==='○').length;
+  const rate=total?Math.round(wins/total*100):0;
+
+  // 各モードの勝率を計算して最高値を求める
+  const modeRates=Object.entries(data).map(([g,stages])=>{
+    const en=Object.values(stages).flat();
+    const t=en.length,w=en.filter(e=>e.result==='○').length;
+    return{g,rate:t?Math.round(w/t*100):0,t};
+  }).filter(m=>m.t>0);
+  const bestRate=modeRates.length?Math.max(...modeRates.map(m=>m.rate)):null;
+  const bestModes=modeRates.filter(m=>m.rate===bestRate);
+  const bestHTML=bestModes.length
+    ?bestModes.map(m=>`<div style="font-family:'JetBrains Mono',monospace;font-size:${bestModes.length>1?.72:1}rem;color:var(--acc);line-height:1.4;word-break:break-all">${esc(m.g)}</div>`).join('')
+    :`<div style="font-size:.72rem;color:var(--mut)">データなし</div>`;
+
+  // サマリーカード（P0上部）
+  const summaryHTML=`
+    <div class="card" style="text-align:center;padding:12px 8px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:1.4rem;color:var(--win)">${rate}%</div>
+      <div style="font-size:.62rem;color:var(--mut);margin-top:3px">総合勝率</div>
+    </div>
+    <div class="card" style="text-align:center;padding:12px 8px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:1.4rem">${total}</div>
+      <div style="font-size:.62rem;color:var(--mut);margin-top:3px">総試合数</div>
+    </div>
+    <div class="card" style="text-align:center;padding:12px 8px">
+      <div style="font-size:.62rem;color:var(--mut);margin-bottom:3px">最も勝率の高いゲームモード</div>
+      ${bestHTML}
+      ${bestRate!==null?`<div style="font-size:.6rem;color:var(--mut);margin-top:2px">${bestRate}%</div>`:''}
     </div>`;
-  }).join('');
+  $('OV_SUMMARY2').innerHTML=summaryHTML;
+
+  // P0: 勝率（全体直近50 + 各モード直近30）
+  const r50=getRecentEntries(50);
+  const r50len=r50.length;
+  const r50w=r50.filter(e=>e.result==='○').length;
+  const r50rate=r50len?Math.round(r50w/r50len*100):0;
+  let wrHTML=`<div class="card" style="margin-bottom:10px">
+    <div class="rhead"><span class="rlbl">🌐 全体</span><span class="rtot">直近${r50len}試合</span></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
+      <div class="bar-w" style="width:100%;flex:1"><div class="bar" style="width:${r50rate}%;background:var(--win)"></div></div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:.9rem;color:var(--win);flex-shrink:0">${r50rate}%</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--mut);flex-shrink:0">${r50w}勝 / ${r50len}試合</span>
+    </div>
+  </div>`;
+  for(const g in data){
+    const gen=[];
+    for(const s in data[g])gen.push(...data[g][s]);
+    const gR=gen.slice(-30);const gLen=gR.length;if(!gLen)continue;
+    const gW=gR.filter(e=>e.result==='○').length;
+    const gRate=Math.round(gW/gLen*100);
+    wrHTML+=`<div class="card" style="margin-bottom:10px">
+      <div class="rhead"><span class="rlbl my">${esc(g)}</span><span class="rtot">直近${gLen}試合</span></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
+        <div class="bar-w" style="width:100%;flex:1"><div class="bar" style="width:${gRate}%;background:var(--acc)"></div></div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:.9rem;color:var(--acc);flex-shrink:0">${gRate}%</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--mut);flex-shrink:0">${gW}勝 / ${gLen}試合</span>
+      </div>
+    </div>`;
+  }
+  $('OV_WINRATE2').innerHTML=wrHTML;
+
+  // P1: 頻出キャラ・編成（直近50）
+  const acSt={};
+  r50.forEach(e=>{
+    [...e.my,...e.enemy].forEach(c=>{
+      if(c==='?')return;
+      if(!acSt[c])acSt[c]={total:0,maru:0};
+      acSt[c].total++;
+    });
+    e.my.forEach(c=>{if(c!=='?'&&e.result==='○')acSt[c].maru++;});
+    e.enemy.forEach(c=>{if(c!=='?'&&e.result==='✕')acSt[c].maru++;});
+  });
+  const ac=byScore(Object.entries(acSt));
+  $('oact').textContent=`直近${r50len}試合`;
+  $('oacr').innerHTML=rankHTML(ac,(k)=>`<span class="rname">${esc(k)}</span>`,false);
+
+  const mc_=charStats(r50,'my');
+  $('omct').textContent=`直近${r50len}試合`;
+  $('omcr').innerHTML=rankHTML(mc_,(k)=>`<span class="rname">${esc(k)}</span>`,false);
+
+  const mf=comboStats(r50,'my');
+  $('omft').textContent=`直近${r50len}試合 / ${mf.length} 種`;
+  $('omfr').innerHTML=rankHTML(mf,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ${i===0?'g':''}">${esc(w)}</span>`).join('')}</div>`,false);
+
+  const ec=charStats(r50,'enemy');
+  $('oect').textContent=`直近${r50len}試合`;
+  $('oecr').innerHTML=rankHTML(ec,(k)=>`<span class="rname" style="color:var(--ene)">${esc(k)}</span>`,true);
+
+  const ef=comboStats(r50,'enemy');
+  const eftotal=ef.reduce((a,[,s])=>a+s.total,0);
+  $('oeft').textContent=`${eftotal} 件 / ${ef.length} 種`;
+  $('oefr').innerHTML=rankHTML(ef,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ep ${i===0?'g':''}">${esc(w)}</span>`).join('')}</div>`,true);
+  swOvChar(0);
 }
 
 // ===== RANKS =====
@@ -416,22 +675,23 @@ function renderRanks(){
   if(!G||!S)return;
   const en=data[G][S];
 
-  const mc_=charStats(en,'my'),mm=mc_[0]?.[1].total||1;
+  const mc_=charStats(en,'my');
   $('mct').textContent=en.length*3+' 件';
-  $('mcr').innerHTML=rankHTML(mc_,mm,(k,i)=>`<span class="rname">${esc(k)}</span>`);
+  $('mcr').innerHTML=rankHTML(mc_,(k)=>`<span class="rname">${esc(k)}</span>`,false);
 
-  const mf=comboStats(en,'my'),mfm=mf[0]?.[1].total||1;
+  const mf=comboStats(en,'my');
   $('mft').textContent=`${en.length} 件 / ${mf.length} 種`;
-  $('mfr').innerHTML=rankHTML(mf,mfm,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ${i===0?'g':''}">${esc(w)}</span>`).join('')}</div>`);
+  $('mfr').innerHTML=rankHTML(mf,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ${i===0?'g':''}">${esc(w)}</span>`).join('')}</div>`,false);
 
-  const ec=charStats(en,'enemy'),em=ec[0]?.[1].total||1;
+  const ec=charStats(en,'enemy');
   const ecnt=en.filter(e=>e.enemy.some(c=>c!=='?')).length;
   $('ect').textContent=ecnt*3+' 件';
-  $('ecr').innerHTML=enemyRankHTML(ec,em,(k,i)=>`<span class="rname" style="color:var(--ene)">${esc(k)}</span>`);
+  $('ecr').innerHTML=rankHTML(ec,(k)=>`<span class="rname" style="color:var(--ene)">${esc(k)}</span>`,true);
 
-  const ef=comboStats(en,'enemy'),efm=ef[0]?.[1].total||1;
-  $('eft').textContent=`${Object.values(ef.reduce((a,[,s])=>(a.t=(a.t||0)+s.total,a),{})).join('')||en.filter(e=>!e.enemy.every(c=>c==='?')).length} 件 / ${ef.length} 種`;
-  $('efr').innerHTML=enemyRankHTML(ef,efm,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ep ${i===0?'g':''}">${esc(w)}</span>`).join('')}</div>`);
+  const ef=comboStats(en,'enemy');
+  const eftotal=ef.reduce((a,[,s])=>a+s.total,0);
+  $('eft').textContent=`${eftotal} 件 / ${ef.length} 種`;
+  $('efr').innerHTML=rankHTML(ef,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ep ${i===0?'g':''}">${esc(w)}</span>`).join('')}</div>`,true);
 }
 
 // ===== SEARCH =====
@@ -444,9 +704,9 @@ function setSide(s){
 }
 
 function runSearch(){
-  const q=$('SI')?.value.trim().toLowerCase();
+  const q=$('SI').value.trim().toLowerCase();
+  if(q)addSearchHistory(q);
   const el=$('SR');
-  if(!el)return;
   if(!q){el.innerHTML='';return;}
   if(!G||!S)return;
   const en=data[G][S];
@@ -454,26 +714,140 @@ function runSearch(){
   if(!matched.length){el.innerHTML='<div class="empty">該当する編成が見つかりません</div>';return;}
 
   const isEn=side==='enemy';
-  const co={};
   const swin=side==='my'?'○':'✕';
-  matched.forEach(e=>e[side].filter(c=>!c.toLowerCase().includes(q)).forEach(c=>{if(c==='?')return;if(!co[c])co[c]={total:0,maru:0};co[c].total++;if(e.result===swin)co[c].maru++;}));
-  const coS=byScore(Object.entries(co)),coM=coS[0]?.[1].total||1;
+  const lClass=isEn?'en':'my';
+  const pClass=isEn?'ep':'';
+
+  const co={};
+  matched.forEach(e=>e[side].filter(c=>!c.toLowerCase().includes(q)&&c!=='?').forEach(c=>{
+    if(!co[c])co[c]={total:0,maru:0};
+    co[c].total++;if(e.result===swin)co[c].maru++;
+  }));
+  const coS=byScore(Object.entries(co));
 
   const cf={};
-  matched.forEach(e=>{const k=[...e[side]].sort().join(' / ');if(!cf[k])cf[k]={total:0,maru:0};cf[k].total++;if(e.result===swin)cf[k].maru++;});
-  const cfS=byScore(Object.entries(cf)),cfM=cfS[0]?.[1].total||1;
+  matched.forEach(e=>{
+    const k=[...e[side]].sort().join(' / ');
+    if(!cf[k])cf[k]={total:0,maru:0};
+    cf[k].total++;if(e.result===swin)cf[k].maru++;
+  });
+  const cfS=byScore(Object.entries(cf));
 
-  const hFn=isEn?enemyRankHTML:rankHTML;
-  const pClass=isEn?'ep':'';
+  el.innerHTML=
+    (coS.length?`<div class="card"><div class="rhead"><span class="rlbl ${lClass}">🤝 一緒に出やすいキャラ</span><span class="rtot">${coS.length} 種</span></div>${rankHTML(coS,(k)=>isEn?`<span class="rname" style="color:var(--ene)">${esc(k)}</span>`:`<span class="rname">${esc(k)}</span>`,isEn)}</div>`:'')+
+    `<div class="card"><div class="rhead"><span class="rlbl ${lClass}">🔗 一緒に出た編成</span><span class="rtot">${cfS.length} 種 / ${matched.length} 件</span></div>${rankHTML(cfS,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ${pClass} ${i===0?'g':''} ${w.toLowerCase().includes(q)?'hi':''}">${esc(w)}</span>`).join('')}</div>`,isEn)}</div>`;
+}
+
+
+// ===== OVERALL SEARCH =====
+let ovSide='all';
+function setOvSide(s){
+  ovSide=s;
+  $('ovSAll').classList.toggle('on',s==='all');
+  $('ovSMy').classList.toggle('on',s==='my');
+  $('ovSEn').classList.toggle('on',s==='enemy');
+  $('ovSQ').textContent=s==='all'?'🌐 全体で検索':s==='my'?'⚔️ 自分キャラで検索':'🛡️ 敵キャラで検索';
+  $('ovSI').value='';$('ovSR').innerHTML='';
+}
+function runOvSearch(){
+  const q=$('ovSI').value.trim().toLowerCase();
+  if(q)addSearchHistory(q);
+  const el=$('ovSR');
+  if(!q){el.innerHTML='';return;}
+  const all=getAllEntries();
+  if(ovSide==='all'){
+    // 自・敵両方からヒットした試合を集める
+    const matched=all.filter(e=>[...e.my,...e.enemy].some(c=>c.toLowerCase().includes(q)));
+    if(!matched.length){el.innerHTML='<div class="empty">該当する編成が見つかりません</div>';return;}
+    const co={};
+    matched.forEach(e=>{
+      [...e.my,...e.enemy].filter(c=>!c.toLowerCase().includes(q)&&c!=='?').forEach(c=>{
+        if(!co[c])co[c]={total:0,maru:0};
+        co[c].total++;if(e.result==='○')co[c].maru++;
+      });
+    });
+    const coS=byScore(Object.entries(co));
+    // 自編成・敵編成それぞれで編成キーを作って表示
+    const cfMy={},cfEn={};
+    matched.forEach(e=>{
+      if(e.my.some(c=>c.toLowerCase().includes(q))){
+        const k=[...e.my].sort().join(' / ');
+        if(!cfMy[k])cfMy[k]={total:0,maru:0};
+        cfMy[k].total++;if(e.result==='○')cfMy[k].maru++;
+      }
+      if(e.enemy.some(c=>c.toLowerCase().includes(q))){
+        const k=[...e.enemy].sort().join(' / ');
+        if(!cfEn[k])cfEn[k]={total:0,maru:0};
+        cfEn[k].total++;if(e.result==='✕')cfEn[k].maru++;
+      }
+    });
+    const cfMyS=byScore(Object.entries(cfMy));
+    const cfEnS=byScore(Object.entries(cfEn));
+    el.innerHTML=
+      (coS.length?`<div class="card"><div class="rhead"><span class="rlbl">🤝 一緒に出やすいキャラ</span><span class="rtot">${coS.length} 種</span></div>${rankHTML(coS,(k)=>`<span class="rname">${esc(k)}</span>`,false)}</div>`:'')+
+      (cfMyS.length?`<div class="card"><div class="rhead"><span class="rlbl my">⚔️ 自分の編成</span><span class="rtot">${cfMyS.length} 種 / ${matched.filter(e=>e.my.some(c=>c.toLowerCase().includes(q))).length} 件</span></div>${rankHTML(cfMyS,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ${i===0?'g':''} ${w.toLowerCase().includes(q)?'hi':''}">${esc(w)}</span>`).join('')}</div>`,false)}</div>`:'')+
+      (cfEnS.length?`<div class="card"><div class="rhead"><span class="rlbl en">🛡️ 敵の編成</span><span class="rtot">${cfEnS.length} 種 / ${matched.filter(e=>e.enemy.some(c=>c.toLowerCase().includes(q))).length} 件</span></div>${rankHTML(cfEnS,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ep ${i===0?'g':''} ${w.toLowerCase().includes(q)?'hi':''}">${esc(w)}</span>`).join('')}</div>`,true)}</div>`:'');
+    return;
+  }
+  const matched=all.filter(e=>e[ovSide].some(c=>c.toLowerCase().includes(q)));
+  if(!matched.length){el.innerHTML='<div class="empty">該当する編成が見つかりません</div>';return;}
+  const isEn=ovSide==='enemy';
+  const swin=ovSide==='my'?'○':'✕';
   const lClass=isEn?'en':'my';
-
-  el.innerHTML=(coS.length?`<div class="card">
-    <div class="rhead"><span class="rlbl ${lClass}">🤝 一緒に出やすいキャラ</span><span class="rtot">${coS.length} 種</span></div>
-    ${hFn(coS,coM,(k,i)=>isEn?`<span class="rname" style="color:var(--ene)">${esc(k)}</span>`:`<span class="rname">${esc(k)}</span>`)}
-  </div>`:'')+`<div class="card">
-    <div class="rhead"><span class="rlbl ${lClass}">🔗 一緒に出た編成</span><span class="rtot">${cfS.length} 種 / ${matched.length} 件</span></div>
-    ${hFn(cfS,cfM,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ${pClass} ${i===0?'g':''} ${w.toLowerCase().includes(q)?'hi':''}">${esc(w)}</span>`).join('')}</div>`)}
-  </div>`;
+  const pClass=isEn?'ep':'';
+  const co={};
+  matched.forEach(e=>e[ovSide].filter(c=>!c.toLowerCase().includes(q)&&c!=='?').forEach(c=>{
+    if(!co[c])co[c]={total:0,maru:0};
+    co[c].total++;if(e.result===swin)co[c].maru++;
+  }));
+  const coS=byScore(Object.entries(co));
+  const cf={};
+  matched.forEach(e=>{
+    const k=[...e[ovSide]].sort().join(' / ');
+    if(!cf[k])cf[k]={total:0,maru:0};
+    cf[k].total++;if(e.result===swin)cf[k].maru++;
+  });
+  const cfS=byScore(Object.entries(cf));
+  el.innerHTML=
+    (coS.length?`<div class="card"><div class="rhead"><span class="rlbl ${lClass}">🤝 一緒に出やすいキャラ</span><span class="rtot">${coS.length} 種</span></div>${rankHTML(coS,(k)=>isEn?`<span class="rname" style="color:var(--ene)">${esc(k)}</span>`:`<span class="rname">${esc(k)}</span>`,isEn)}</div>`:'')+
+    `<div class="card"><div class="rhead"><span class="rlbl ${lClass}">🔗 一緒に出た編成</span><span class="rtot">${cfS.length} 種 / ${matched.length} 件</span></div>${rankHTML(cfS,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ${pClass} ${i===0?'g':''} ${w.toLowerCase().includes(q)?'hi':''}">${esc(w)}</span>`).join('')}</div>`,isEn)}</div>`;
+}
+function showOvSearchSuggest(){
+  const inp=$('ovSI');
+  const sl=$('SLovSI');
+  if(!inp||!sl)return;
+  const q=inp.value.trim().toLowerCase();
+  // 全ステージのスコアを使う（getSuggestScoresはG/Sに依存するため独自集計）
+  const allSt={};
+  for(const g in data)for(const s in data[g])data[g][s].forEach(e=>{
+    e.my.forEach(c=>{if(c!=='?'){if(!allSt[c])allSt[c]={total:0,maru:0};allSt[c].total++;if(e.result==='○')allSt[c].maru++;}});
+    e.enemy.forEach(c=>{if(c!=='?'){if(!allSt[c])allSt[c]={total:0,maru:0};allSt[c].total++;if(e.result==='✕')allSt[c].maru++;}});
+  });
+  // fuzzyMatchのmaxErrを1固定（4文字以上は2）にオーバーライド
+  const match=(q,c)=>{
+    if(!q)return true;
+    const cl=c.toLowerCase();
+    if(cl.includes(q))return true;
+    const maxErr=q.length>=4?2:1;
+    if(editDist(q,cl)<=maxErr)return true;
+    for(let i=0;i<=cl.length-q.length+maxErr;i++){if(editDist(q,cl.slice(i,i+q.length+maxErr))<=maxErr)return true;}
+    return false;
+  };
+  const sorted=Object.entries(allSt).sort((a,b)=>b[1].maru-a[1].maru||b[1].total-a[1].total).filter(([c])=>match(q,c));
+  if(!sorted.length){sl.style.display='none';return;}
+  sl.innerHTML=sorted.slice(0,7).map(([c])=>
+    `<div class="sug-item" onmousedown="pickOvSearchSuggest('${esc(c)}')">${esc(c)}</div>`
+  ).join('');
+  const rect=inp.getBoundingClientRect();
+  sl.style.left=rect.left+'px';
+  sl.style.top=(rect.bottom+3)+'px';
+  sl.style.width=rect.width+'px';
+  sl.style.display='block';
+}
+function pickOvSearchSuggest(val){
+  $('ovSI').value=val;
+  $('SLovSI').style.display='none';
+  runOvSearch();
 }
 
 // ===== HISTORY =====
@@ -562,16 +936,167 @@ function confirmModal(){
 function toggleDrawer(){$('SB').classList.toggle('on');$('DO').classList.toggle('on');}
 function closeDrawer(){$('SB').classList.remove('on');$('DO').classList.remove('on');}
 
+// ===== SUGGEST =====
+function getSuggestScores(){
+  const st={};
+  if(!G||!S)return st;
+  data[G][S].forEach(e=>{
+    // 自編成：自チーム勝率で加算
+    e.my.forEach(c=>{
+      if(c==='?')return;
+      if(!st[c])st[c]={total:0,maru:0};
+      st[c].total++;
+      if(e.result==='○')st[c].maru++;
+    });
+    // 敵編成：敵チーム勝率（✕が敵の勝ち）で加算
+    e.enemy.forEach(c=>{
+      if(c==='?')return;
+      if(!st[c])st[c]={total:0,maru:0};
+      st[c].total++;
+      if(e.result==='✕')st[c].maru++;
+    });
+  });
+  // スコア = 出撃数 × 勝率 = maru
+  return Object.fromEntries(Object.entries(st).map(([c,s])=>[c,s.maru]));
+}
+function getAllChars(){
+  const set=new Set();
+  for(const g in data)for(const s in data[g])data[g][s].forEach(e=>[...e.my,...e.enemy].forEach(c=>{if(c!=='?')set.add(c);}));
+  return set;
+}
+function editDist(a,b){
+  const m=a.length,n=b.length;
+  const maxD=Math.ceil(Math.max(m,n)*0.5); // 上限を緩く
+  if(Math.abs(m-n)>maxD)return 99;
+  const dp=Array.from({length:m+1},(_,i)=>i);
+  for(let j=1;j<=n;j++){
+    let prev=dp[0];dp[0]=j;
+    for(let i=1;i<=m;i++){const tmp=dp[i];dp[i]=a[i-1]===b[j-1]?prev:1+Math.min(prev,dp[i],dp[i-1]);prev=tmp;}
+  }
+  return dp[m];
+}
+function matchScore(q,c){
+  if(!q)return 0;
+  const cl=c.toLowerCase();
+  if(cl===q)return 0;           // 完全一致
+  if(cl.startsWith(q))return 1; // 前方一致
+  if(cl.includes(q))return 2;   // 部分一致
+  const maxErr=q.length>=4?2:1;
+  const d=editDist(q,cl);
+  if(d<=maxErr)return 3+d;      // 全体編集距離
+  for(let i=0;i<=cl.length-q.length+maxErr;i++){
+    const sd=editDist(q,cl.slice(i,i+q.length+maxErr));
+    if(sd<=maxErr)return 3+sd;  // 部分編集距離
+  }
+  return 99;
+}
+function fuzzyMatch(q,c){
+  if(!q)return true;
+  const cl=c.toLowerCase();
+  if(cl.includes(q))return true;
+  const maxErr=q.length>=4?2:1; // 4文字以上は2文字まで許容
+  if(q.length>=2&&editDist(q,cl)<=maxErr)return true;
+  if(q.length>=2){
+    for(let i=0;i<=cl.length-q.length+maxErr;i++){
+      if(editDist(q,cl.slice(i,i+q.length+maxErr))<=maxErr)return true;
+    }
+  }
+  return false;
+}
+
+function showSuggest(inputId){
+  const inp=$(inputId);
+  const sl=$('SL'+inputId);
+  if(!inp||!sl)return;
+  const q=inp.value.trim().toLowerCase();
+  const filled=new Set(['w1','w2','w3','e1','e2','e3'].filter(id=>id!==inputId).map(id=>$(id).value.trim()).filter(Boolean));
+  const scores=getSuggestScores();
+  // そのステージの出現回数順、次に全ステージのキャラ（クエリあり時のみ）
+  const stageEntries=Object.entries(scores).filter(([cv])=>!filled.has(cv)&&fuzzyMatch(q,cv));
+  const stageSet=new Set(stageEntries.map(([cv])=>cv));
+  const globalEntries=q?[...getAllChars()].filter(cv=>!stageSet.has(cv)&&!filled.has(cv)&&fuzzyMatch(q,cv)).map(cv=>[cv,0]):[];
+  const merged=[...stageEntries,...globalEntries]
+    .sort((a,b)=>matchScore(q,a[0])-matchScore(q,b[0])||b[1]-a[1]);
+  if(!merged.length){sl.style.display='none';return;}
+  sl.innerHTML=merged.slice(0,7).map(([cv])=>
+    `<div class="sug-item" onmousedown="pickSuggest('${inputId}','${esc(cv)}')">${esc(cv)}</div>`
+  ).join('');
+  const rect=inp.getBoundingClientRect();
+  sl.style.left=rect.left+'px';
+  sl.style.top=(rect.bottom+3)+'px';
+  sl.style.width=rect.width+'px';
+  sl.style.display='block';
+}
+function hideSuggest(inputId){const sl=$('SL'+inputId);if(sl)sl.style.display='none';}
+function pickSuggest(inputId,val){
+  $(inputId).value=val;
+  hideSuggest(inputId);
+  const order=['w1','w2','w3','e1','e2','e3'];
+  const next=order[order.indexOf(inputId)+1];
+  if(next)$(next).focus();
+}
+
+function showSearchSuggest(){
+  const inp=$('SI');
+  const sl=$('SLSI');
+  if(!inp||!sl)return;
+  const q=inp.value.trim().toLowerCase();
+  const scores=getSuggestScores();
+  const stageEntries=Object.entries(scores).filter(([cv])=>fuzzyMatch(q,cv));
+  const stageSet2=new Set(stageEntries.map(([cv])=>cv));
+  const globalList=q?[...getAllChars()].filter(cv=>!stageSet2.has(cv)&&fuzzyMatch(q,cv)).map(cv=>[cv,0]):[];
+  const merged=[...stageEntries,...globalList].sort((a,b)=>matchScore(q,a[0])-matchScore(q,b[0])||b[1]-a[1]);
+  if(!merged.length){sl.style.display='none';return;}
+  sl.innerHTML=merged.slice(0,7).map(([cv])=>
+    `<div class="sug-item" onmousedown="pickSearchSuggest('${esc(cv)}')">${esc(cv)}</div>`
+  ).join('');
+  const rect=inp.getBoundingClientRect();
+  sl.style.left=rect.left+'px';
+  sl.style.top=(rect.bottom+3)+'px';
+  sl.style.width=rect.width+'px';
+  sl.style.display='block';
+}
+function pickSearchSuggest(val){
+  $('SI').value=val;
+  $('SLSI').style.display='none';
+  runSearch();
+}
+
 // ===== EVENTS =====
 $('MI1').addEventListener('keydown',e=>{if(e.key==='Enter')confirmModal();});
 [['w1','w2'],['w2','w3'],['w3','e1'],['e1','e2'],['e2','e3']].forEach(([a,b])=>
   $(a).addEventListener('keydown',e=>{if(e.key==='Enter')$(b).focus();}));
 $('e3').addEventListener('keydown',e=>{if(e.key==='Enter')addEntry();});
-$('SI').addEventListener('input',runSearch);
+$('SI').addEventListener('input',()=>{runSearch();showSearchSuggest();});
+$('ovSI').addEventListener('input',()=>{runOvSearch();showOvSearchSuggest();});
+$('ovSI').addEventListener('focus',showOvSearchSuggest);
+$('ovSI').addEventListener('blur',()=>setTimeout(()=>$('SLovSI').style.display='none',150));
+$('SI').addEventListener('focus',showSearchSuggest);
+$('SI').addEventListener('blur',()=>setTimeout(()=>$('SLSI').style.display='none',150));
+['w1','w2','w3','e1','e2','e3'].forEach(id=>{
+  $(id).addEventListener('input',()=>showSuggest(id));
+  $(id).addEventListener('focus',()=>showSuggest(id));
+  $(id).addEventListener('blur',()=>setTimeout(()=>hideSuggest(id),150));
+});
 
-// ===== INIT =====
+// 表示中のサジェストを常に入力欄に追従させる（rAFループ）
+function repositionSuggests(){
+  ['w1','w2','w3','e1','e2','e3','SI','ovSI'].forEach(id=>{
+    const slId=id==='SI'?'SLSI':id==='ovSI'?'SLovSI':'SL'+id;
+    const sl=$(slId);
+    if(!sl||sl.style.display==='none')return;
+    const inp=$(id);
+    if(!inp)return;
+    const rect=inp.getBoundingClientRect();
+    sl.style.left=rect.left+'px';
+    sl.style.top=(rect.bottom+3)+'px';
+  });
+  requestAnimationFrame(repositionSuggests);
+}
+requestAnimationFrame(repositionSuggests);
 for(const g in data)openG[g]=true;
 renderSidebar();
+selOverall();
 </script>
 </body>
 </html>
