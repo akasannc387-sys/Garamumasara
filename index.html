@@ -373,6 +373,28 @@ button:hover{opacity:.82;}
   </div>
 </div>
 
+<!-- タブ削除確認モーダル -->
+<div class="overlay" id="DO2" onclick="closeDelModal()" style="display:none"></div>
+<div id="DM" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;width:320px;max-width:90vw">
+  <div class="modal">
+    <h3 id="DM_TITLE">タブを削除</h3>
+    <div id="DM_STEP1">
+      <p id="DM_MSG1" style="font-size:.82rem;margin-bottom:16px;line-height:1.6"></p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btns" onclick="closeDelModal()">キャンセル</button>
+        <button class="btns" style="background:rgba(220,60,60,.15);color:#e06060;border-color:#e06060" onclick="delModalStep2()">削除する</button>
+      </div>
+    </div>
+    <div id="DM_STEP2" style="display:none">
+      <p style="font-size:.82rem;margin-bottom:16px;line-height:1.6;color:#e06060">⚠️ タブに入力されたデータが削除されます。<br>本当によろしいですか？</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btns" onclick="closeDelModal()">キャンセル</button>
+        <button class="btns" style="background:rgba(220,60,60,.25);color:#e06060;border-color:#e06060" onclick="confirmDelMode()">削除する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const SK='comboFreqV5';
 let data=JSON.parse(localStorage.getItem(SK)||'{}');
@@ -622,11 +644,16 @@ function renderOverall(){
   for(const g in data){
     const gen=[];
     for(const s in data[g])gen.push(...data[g][s]);
-    const gR=gen.slice(-30);const gLen=gR.length;if(!gLen)continue;
+    const gR=gen.slice(-30);const gLen=gR.length;
+    const delBtn=`<button class="btns" style="margin-left:auto;padding:2px 8px;font-size:.62rem;background:rgba(220,60,60,.1);color:#e06060;border-color:#e06060" onmousedown="openDelModal('${esc(g)}')">🗑 削除</button>`;
+    if(!gLen){
+      wrHTML+=`<div class="card" style="margin-bottom:10px"><div class="rhead"><span class="rlbl my">${esc(g)}</span>${delBtn}</div><div style="padding:8px 0;font-size:.75rem;color:var(--mut);font-family:'JetBrains Mono',monospace">NO DATA</div></div>`;
+      continue;
+    }
     const gW=gR.filter(e=>e.result==='○').length;
     const gRate=Math.round(gW/gLen*100);
     wrHTML+=`<div class="card" style="margin-bottom:10px">
-      <div class="rhead"><span class="rlbl my">${esc(g)}</span><span class="rtot">直近${gLen}試合</span></div>
+      <div class="rhead"><span class="rlbl my">${esc(g)}</span><span class="rtot">直近${gLen}試合</span>${delBtn}</div>
       <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
         <div class="bar-w" style="width:100%;flex:1"><div class="bar" style="width:${gRate}%;background:var(--acc)"></div></div>
         <span style="font-family:'JetBrains Mono',monospace;font-size:.9rem;color:var(--acc);flex-shrink:0">${gRate}%</span>
@@ -930,6 +957,37 @@ function confirmModal(){
     if(data[g][name]){showMsg('MM','すでに存在します','err');return;}
     data[g][name]=[];save();closeModal();renderSidebar();selTag(g,name);
   }
+}
+
+
+// ===== TAB DELETE MODAL =====
+let _delG=null;
+function openDelModal(g){
+  _delG=g;
+  $('DM_TITLE').textContent='タブを削除';
+  $('DM_MSG1').textContent=`「${g}」のタブを削除します。よろしいですか？`;
+  $('DM_STEP1').style.display='block';
+  $('DM_STEP2').style.display='none';
+  $('DM').style.display='block';
+  $('DO2').style.display='block';
+}
+function closeDelModal(){
+  $('DM').style.display='none';
+  $('DO2').style.display='none';
+  _delG=null;
+}
+function delModalStep2(){
+  $('DM_STEP1').style.display='none';
+  $('DM_STEP2').style.display='block';
+}
+function confirmDelMode(){
+  if(!_delG)return;
+  delete data[_delG];
+  delete openG[_delG];
+  save();
+  closeDelModal();
+  renderSidebar();
+  renderOverall();
 }
 
 // ===== DRAWER =====
