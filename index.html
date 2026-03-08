@@ -351,6 +351,25 @@ button:hover{opacity:.82;}
         <input type="text" id="ovSI" placeholder="キャラ名を入力…">
       </div>
       <div id="ovSR"></div>
+        <div class="card" style="margin-top:14px">
+          <div class="rhead">
+            <span class="rlbl">🎮 キャラ一覧</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="rtot" id="CL_CNT"></span>
+              <button class="btns" id="CL_EDIT_BTN" style="font-size:.62rem;padding:2px 8px" onclick="toggleCharEdit()">✏️ 編集</button>
+            </div>
+          </div>
+          <div id="CL_LIST" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px"></div>
+          <div id="CL_EDIT" style="display:none;margin-top:10px;border-top:1px solid var(--bdr);padding-top:10px">
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <input type="text" id="CL_INPUT" placeholder="キャラ名を追加…" style="flex:1;font-size:.75rem">
+              <button class="btns" style="font-size:.7rem;padding:4px 8px" onclick="addMasterChar()">追加</button>
+            </div>
+            <div style="display:flex;justify-content:flex-end">
+              <button class="btns" style="font-size:.62rem;padding:2px 6px;color:var(--mut)" onclick="syncMasterFromData()">📥 記録から同期</button>
+            </div>
+          </div>
+        </div>
     </div>
     <div id="W2" class="welcome"><div class="wico">🔍</div><div class="wtxt">ステージを選択してください</div></div>
     <div id="F2" style="display:none">
@@ -371,6 +390,7 @@ button:hover{opacity:.82;}
           <div class="rhead"><span class="rlbl">📋 入力履歴</span><span class="rtot" id="HT"></span></div>
           <div id="HL"></div>
         </div>
+
       </div>
     </div>
   </div>
@@ -670,7 +690,7 @@ function updatePanels(){
     $('F'+i).style.display=has?'block':'none';
     if(has)$('BC'+i).innerHTML=bcHTML(G,S);
   });
-  if(has){updateDupBadge();
+  if(has){updateDupBadge();renderCharList();
     renderHistory();
     if(tab===1)renderRanks();
     $('SI').value='';$('SR').innerHTML='';
@@ -1076,6 +1096,8 @@ function addEntry(){
       if(!confirm('キャラクターが重複していますがよろしいですか？'))return;
     }
   }
+  // マスターリストに自動追加
+  [w1,w2,w3,...enemy].forEach(c=>{if(c!=='?'&&!masterChars.includes(c)){masterChars.push(c);saveChars();}});renderCharList();
   en.push({my:[w1,w2,w3],enemy,result:res});
   if(en.length>MAX)en.splice(0,en.length-MAX);
   save();
@@ -1155,7 +1177,7 @@ function closeExportModal(){
   $('EXP_MOD').style.display='none';
 }
 function exportData(){
-  const json=JSON.stringify(data,null,2);
+  const json=JSON.stringify({data,chars:masterChars},null,2);
   const blob=new Blob([json],{type:'application/json'});
   const date=new Date();
   const ds=`${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}`;
@@ -1192,6 +1214,7 @@ function exportClearData(){
 }
 
 let _importData=null;
+let _importChars=[];
 function importData(e){
   const file=e.target.files[0];
   if(!file)return;
@@ -1199,9 +1222,15 @@ function importData(e){
   reader.onload=ev=>{
     try{
       const parsed=JSON.parse(ev.target.result);
-      // 簡易バリデーション: オブジェクトで各値もオブジェクトであること
       if(typeof parsed!=='object'||Array.isArray(parsed))throw new Error();
-      _importData=parsed;
+      // 新形式{data,chars}か旧形式dataか判定
+      if(parsed.data&&typeof parsed.data==='object'){
+        _importData=parsed.data;
+        _importChars=Array.isArray(parsed.chars)?parsed.chars:[];
+      } else {
+        _importData=parsed;
+        _importChars=[];
+      }
       $('IMP_OV').style.display='block';
       $('IMP_MOD').style.display='block';
     }catch{
@@ -1220,6 +1249,7 @@ function confirmImport(mode){
   if(!_importData)return;
   if(mode==='overwrite'){
     data=_importData;
+    if(_importChars.length){masterChars=_importChars;saveChars();}
   } else {
     // merge: ゲームモード・ステージ単位で合算
     for(const g in _importData){
@@ -1239,9 +1269,13 @@ function confirmImport(mode){
       }
     }
   }
+  // charsマージ
+  _importChars.forEach(c=>{if(!masterChars.includes(c))masterChars.push(c);});
+  if(_importChars.length)saveChars();
   save();
   for(const g in data)openG[g]=true;
   closeImportModal();
+  renderCharList();
   G=null;S=null;
   exitOverall();
   renderSidebar();
@@ -1305,8 +1339,67 @@ function getSuggestScores(){
   // スコア = 出撃数 × 勝率 = maru
   return Object.fromEntries(Object.entries(st).map(([c,s])=>[c,s.maru]));
 }
+// ===== CHARACTER MASTER LIST =====
+const SK_CHARS='brawlChars';
+let masterChars=JSON.parse(localStorage.getItem(SK_CHARS)||'[]');
+function saveChars(){localStorage.setItem(SK_CHARS,JSON.stringify(masterChars));}
+
+function addMasterChar(){
+  const inp=$('CL_INPUT');
+  const val=inp.value.trim();
+  if(!val)return;
+  const names=val.split(/[、,，\s]+/).map(s=>s.trim()).filter(Boolean);
+  let added=0;
+  names.forEach(n=>{if(!masterChars.includes(n)){masterChars.push(n);added++;}});
+  saveChars();inp.value='';renderCharList();
+  if(added===0)showMsg('MSG','すでに登録済みです','err');
+}
+
+function delMasterChar(name){
+  masterChars=masterChars.filter(c=>c!==name);
+  saveChars();renderCharList();
+}
+
+function syncMasterFromData(){
+  const all=getAllChars();
+  let added=0;
+  all.forEach(c=>{if(!masterChars.includes(c)){masterChars.push(c);added++;}});
+  saveChars();renderCharList();
+  showMsg('MSG',added?added+'件のキャラを同期しました':'新しいキャラはありませんでした','ok');
+}
+
+let _charEditMode=false;
+function toggleCharEdit(){
+  _charEditMode=!_charEditMode;
+  $('CL_EDIT').style.display=_charEditMode?'block':'none';
+  $('CL_EDIT_BTN').textContent=_charEditMode?'✅ 完了':'✏️ 編集';
+  $('CL_EDIT_BTN').style.color=_charEditMode?'var(--win)':'';
+  renderCharList();
+}
+function renderCharList(){
+  const el=$('CL_LIST');
+  const cnt=$('CL_CNT');
+  if(!el)return;
+  const toHira=s=>s.replace(/[\u30A1-\u30F6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+  const isJP=s=>/[\u3040-\u30FF\u4E00-\u9FFF]/.test(s);
+  masterChars.sort((a,b)=>{
+    const aj=isJP(a),bj=isJP(b);
+    if(aj&&!bj)return -1;
+    if(!aj&&bj)return 1;
+    return toHira(a).localeCompare(toHira(b),'ja',{sensitivity:'base'});
+  });
+  cnt.textContent=masterChars.length+' 件';
+  if(!masterChars.length){el.innerHTML='<span style="font-size:.72rem;color:var(--mut)">未登録</span>';return;}
+  el.innerHTML=masterChars.map(c=>
+    `<span style="display:inline-flex;align-items:center;gap:3px;background:var(--sur2);border:1px solid var(--bdr);border-radius:4px;padding:2px 6px;font-size:.7rem">
+      <span onclick="_charEditMode?null:($('ovSI').value='${esc(c)}',runOvSearch());" style="cursor:${_charEditMode?'default':'pointer'}">${esc(c)}</span>
+      ${_charEditMode?`<span onclick="delMasterChar('${esc(c)}')" style="cursor:pointer;color:#e06060;font-size:.65rem;padding-left:2px">×</span>`:''}
+    </span>`
+  ).join('');
+}
+
 function getAllChars(){
-  const set=new Set();
+  const set=new Set(masterChars);
   for(const g in data)for(const s in data[g])getEntries(g,s).forEach(e=>[...e.my,...e.enemy].forEach(c=>{if(c!=='?')set.add(c);}));
   return set;
 }
@@ -1418,6 +1511,7 @@ function pickSearchSuggest(val){
 
 // ===== EVENTS =====
 $('MI1').addEventListener('keydown',e=>{if(e.key==='Enter')confirmModal();});
+$('CL_INPUT').addEventListener('keydown',e=>{if(e.key==='Enter')addMasterChar();});
 [['w1','w2'],['w2','w3'],['w3','e1'],['e1','e2'],['e2','e3']].forEach(([a,b])=>
   $(a).addEventListener('keydown',e=>{if(e.key==='Enter')$(b).focus();}));
 $('e3').addEventListener('keydown',e=>{if(e.key==='Enter')addEntry();});
@@ -1450,6 +1544,7 @@ function repositionSuggests(){
 requestAnimationFrame(repositionSuggests);
 for(const g in data)openG[g]=true;
 renderSidebar();
+renderCharList();
 selOverall();
 </script>
 <div style="width:100%;background:#0f1117;padding:18px 16px 4px;box-sizing:border-box">
