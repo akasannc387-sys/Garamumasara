@@ -535,6 +535,18 @@ let data=JSON.parse(localStorage.getItem(SK)||'{}');
   }
 })();
 
+
+// デフォルトデータ（初回起動時のみ）
+(()=>{
+  const SK_CHARS_LOCAL='brawlChars';
+  const noData=!Object.keys(data).length;
+  const noChars=!localStorage.getItem(SK_CHARS_LOCAL);
+  if(noData||noChars){
+    const def={"data":{"エメラルドハント":{"ごつごつ坑道":{"entries":[],"dupOk":true},"ダブルレール":{"entries":[],"dupOk":true},"アンダーマイン":{"entries":[],"dupOk":true},"エメラルドの要塞":{"entries":[],"dupOk":true},"寂れたアーケード":{"entries":[],"dupOk":true},"クリスタルアーケード":{"entries":[],"dupOk":true}},"ブロストライカー":{"中央コート":{"entries":[],"dupOk":true},"ピンボールドリーム":{"entries":[],"dupOk":true},"静かな広場":{"entries":[],"dupOk":true},"トリプルドリブル":{"entries":[],"dupOk":true}},"強奪":{"ホットポテト":{"entries":[],"dupOk":true},"安全地帯":{"entries":[],"dupOk":true},"どんぱち谷":{"entries":[],"dupOk":true},"橋の彼方":{"entries":[],"dupOk":true}},"賞金稼ぎ":{"流れ星":{"entries":[],"dupOk":true},"隠れ家":{"entries":[],"dupOk":true},"乾燥地帯":{"entries":[],"dupOk":true},"ミルフィーユ":{"entries":[],"dupOk":true}},"ホットゾーン":{"ビートルバトル":{"entries":[],"dupOk":true},"オープンビジネス":{"entries":[],"dupOk":true},"炎のリング":{"entries":[],"dupOk":true},"パラレルワールド":{"entries":[],"dupOk":true}},"ノックアウト":{"オープンフィールド":{"entries":[],"dupOk":true},"ベルの岩":{"entries":[],"dupOk":true},"燃える不死鳥":{"entries":[],"dupOk":true},"新たなる地平":{"entries":[],"dupOk":true}}},"chars":["アッシュ","アリー","アンジェロ","アンバー","イヴ","ウィロー","エイトビット","エドガー","エムズ","エリザベス","エルプリモ","オーティス","オーリー","カール","ガス","カゼ","キット","クランシー","グリフ","グレイ","クロウ","グローウィー","グロム","ゲイル","ケンジ","コーデリアス","コルト","コレット","サージ","サム","サンディ","ジーン","シェイド","ジェシー","ジェヨン","シェリー","ジギー","ジジ","ジャッキー","ジャネット","ジュジュ","シリウス","スクウィーク","ストゥー","スパイク","スプラウト","ダイナマイク","ダグ","タラ","ダリル","チェスター","チャーリー","チャック","ティック","ドラコ","トランク","ナーニ","ニタ","バーリー","パール","バイロン","バズ","バスター","パム","ハンク","ピアス","ビー","ビビ","ファング","フィンクス","フランケン","ブル","ブロック","ペニー","ベリー","ベル","ボウ","ポコ","ボニー","マックス","マンディ","ミープル","ミコ","ミスターピー","ミナ","メイジー","メグ","メロディー","モー","モーティス","ラフス","ラリロリ","リコ","リリー","ルー","ルミ","レオン","ローサ","ローラ","RT"]};
+    if(noData){data=def.data;save();}
+    if(noChars){localStorage.setItem(SK_CHARS_LOCAL,JSON.stringify(def.chars));}
+  }
+})();
 let G=null,S=null,res='○',tab=0,side='my',openG={},isOverall=false;
 const MAX=20;
 
