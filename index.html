@@ -7,6 +7,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Brawl Stars（ブロスタ）の試合編成や勝敗を記録し、勝率・キャラ傾向を確認できる非公式の個人用分析ツールです。キャラ編成ごとの勝率や頻出編成を集計し、プレイスタイルの振り返りに役立てられます。">
 <meta name="keywords" content="ブロスタ,Brawl Stars,編成記録,勝率,キャラ,分析,ツール,チーム編成,相性">
+<meta property="og:title" content="ブロスタ 編成記録ツール">
+<meta property="og:description" content="Brawl Stars（ブロスタ）の試合編成や勝敗を記録し、勝率やキャラ傾向を分析できる非公式ツール。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://garamumasara.vercel.app">
 <title>ブロスタ 編成記録ツール | Brawl Stars Team Log</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <meta name="google-site-verification" content="hNqXS0LLFriBS5y9ITVcibk0hFtmBI1DblJU6dfiM7I" />
@@ -180,6 +184,7 @@ button:hover{opacity:.82;}
 </style>
 </head>
 <body>
+<h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">ブロスタ 編成記録ツール</h1>
 <div style="width:100%;background:#0f1117;border-bottom:1px solid #2a2a2a;padding:7px 16px;box-sizing:border-box">
   <p style="font-size:10px;color:#484848;text-align:center;line-height:1.6;margin:0 auto;max-width:640px">
     Brawl Stars（ブロスタ）の試合編成・勝敗を記録して勝率やキャラ傾向を分析できる、個人用の非公式ツールです。
@@ -197,7 +202,7 @@ button:hover{opacity:.82;}
   <div id="ST"></div>
   <button class="s-add" onclick="openModal('genre')">＋ ゲームモードを追加</button>
   <div style="display:flex;gap:6px;margin:6px 14px 0">
-    <button class="s-add" style="margin:0;flex:1;padding:5px 4px;font-size:.65rem" onclick="exportData()">📤 戦績を共有</button>
+    <button class="s-add" style="margin:0;flex:1;padding:5px 4px;font-size:.65rem" onclick="openExportModal()">📤 戦績を共有</button>
     <button class="s-add" style="margin:0;flex:1;padding:5px 4px;font-size:.65rem" onclick="$('IMP_FILE').click()">📥 戦績をダウンロード</button>
   </div>
   <input type="file" id="IMP_FILE" accept=".json" style="display:none" onchange="importData(event)">
@@ -406,16 +411,52 @@ button:hover{opacity:.82;}
   </div>
 </div>
 
+<!-- エクスポート確認モーダル -->
+<div class="overlay" id="EXP_OV" onclick="closeExportModal()" style="display:none"></div>
+<div id="EXP_MOD" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;width:300px;max-width:90vw">
+  <div class="modal">
+    <h3>📤 戦績を共有</h3>
+    <div id="EXP_STEP1">
+      <p style="font-size:.82rem;margin-bottom:16px;line-height:1.6">データをファイルとしてダウンロードします。<br>よろしいですか？</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btns" onclick="closeExportModal()">キャンセル</button>
+        <button class="btns" style="background:rgba(91,141,238,.15);color:var(--acc);border-color:var(--acc)" onclick="exportStep2()">ダウンロード</button>
+      </div>
+    </div>
+    <div id="EXP_STEP2" style="display:none">
+      <p style="font-size:.82rem;margin-bottom:12px;line-height:1.6">ダウンロードしました。<br>このデバイスのデータはどうしますか？</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px">
+        <button class="btns" style="text-align:left;padding:10px 12px;line-height:1.5" onclick="closeExportModal()">
+          <div style="font-size:.8rem;color:var(--acc)">📂 残す</div>
+          <div style="font-size:.65rem;color:var(--mut);margin-top:2px">このデバイスのデータをそのまま保持します。</div>
+        </button>
+        <button class="btns" style="text-align:left;padding:10px 12px;line-height:1.5" onclick="exportClearData()">
+          <div style="font-size:.8rem;color:#e06060">🗑 削除する</div>
+          <div style="font-size:.65rem;color:var(--mut);margin-top:2px">このデバイスのデータをすべて削除します。</div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- インポート確認モーダル -->
 <div class="overlay" id="IMP_OV" onclick="closeImportModal()" style="display:none"></div>
 <div id="IMP_MOD" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;width:320px;max-width:90vw">
   <div class="modal">
-    <h3>📥 戦績をダウンロード確認</h3>
-    <p style="font-size:.82rem;margin-bottom:8px;line-height:1.6">読み込んだデータで現在のデータを<strong>上書き</strong>します。</p>
-    <p style="font-size:.75rem;color:#e06060;margin-bottom:16px">⚠️ 現在のデータはすべて失われます。よろしいですか？</p>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
+    <h3>📥 戦績をインポート</h3>
+    <p style="font-size:.82rem;margin-bottom:12px;line-height:1.6">インポート方法を選択してください。</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <button class="btns" style="text-align:left;padding:10px 12px;line-height:1.5" onclick="confirmImport('merge')">
+        <div style="font-size:.8rem;color:var(--acc)">📊 足し合わせる</div>
+        <div style="font-size:.65rem;color:var(--mut);margin-top:2px">現在のデータに読み込んだデータを追加します。同じステージは記録が合算されます。</div>
+      </button>
+      <button class="btns" style="text-align:left;padding:10px 12px;line-height:1.5" onclick="confirmImport('overwrite')">
+        <div style="font-size:.8rem;color:#e06060">⚠️ 上書きする</div>
+        <div style="font-size:.65rem;color:var(--mut);margin-top:2px">現在のデータをすべて削除して置き換えます。元に戻せません。</div>
+      </button>
+    </div>
+    <div style="display:flex;justify-content:flex-end">
       <button class="btns" onclick="closeImportModal()">キャンセル</button>
-      <button class="btns" style="background:rgba(91,141,238,.15);color:var(--acc);border-color:var(--acc)" onclick="confirmImport()">上書きする</button>
     </div>
   </div>
 </div>
@@ -981,7 +1022,7 @@ function pickOvSearchSuggest(val){
 function renderHistory(){
   const el=$('HL'),tot=$('HT');
   if(!el)return;
-  const en=(G&&S)?data[G][S]:[];
+  const en=(G&&S)?getEntries(G,S):[];
   if(tot)tot.textContent=en.length+' 件';
   if(!en.length){el.innerHTML='<div class="empty">まだ記録がありません</div>';return;}
   el.innerHTML=[...en].reverse().map((e,ri)=>{
@@ -999,7 +1040,7 @@ function renderHistory(){
 }
 
 function delEntry(i){
-  data[G][S].splice(i,1);save();renderHistory();renderSidebar();
+  stageObj(G,S).entries.splice(i,1);save();renderHistory();renderSidebar();
   if(tab===1)renderRanks();
   if($('SI').value.trim())runSearch();
 }
@@ -1103,15 +1144,51 @@ function confirmModal(){
 
 
 // ===== EXPORT / IMPORT =====
+function openExportModal(){
+  $('EXP_STEP1').style.display='block';
+  $('EXP_STEP2').style.display='none';
+  $('EXP_OV').style.display='block';
+  $('EXP_MOD').style.display='block';
+}
+function closeExportModal(){
+  $('EXP_OV').style.display='none';
+  $('EXP_MOD').style.display='none';
+}
 function exportData(){
   const json=JSON.stringify(data,null,2);
   const blob=new Blob([json],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
   const date=new Date();
   const ds=`${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}`;
-  a.href=url;a.download=`brawl-log-${ds}.json`;a.click();
-  URL.revokeObjectURL(url);
+  const filename=`brawl-log-${ds}.json`;
+  // iOS Safari対応: ObjectURLをwindow.openで開く
+  if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const a=document.createElement('a');
+      a.href=reader.result;
+      a.download=filename;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+    };
+    reader.readAsDataURL(blob);
+  } else {
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+}
+function exportStep2(){
+  exportData();
+  $('EXP_STEP1').style.display='none';
+  $('EXP_STEP2').style.display='block';
+}
+function exportClearData(){
+  data={};save();
+  closeExportModal();
+  G=null;S=null;
+  renderSidebar();
+  selOverall();
 }
 
 let _importData=null;
@@ -1139,9 +1216,29 @@ function closeImportModal(){
   $('IMP_MOD').style.display='none';
   _importData=null;
 }
-function confirmImport(){
+function confirmImport(mode){
   if(!_importData)return;
-  data=_importData;
+  if(mode==='overwrite'){
+    data=_importData;
+  } else {
+    // merge: ゲームモード・ステージ単位で合算
+    for(const g in _importData){
+      if(!data[g]){data[g]={};openG[g]=true;}
+      for(const s in _importData[g]){
+        const imp=_importData[g][s];
+        const impEntries=Array.isArray(imp)?imp:(imp.entries||[]);
+        const impDupOk=Array.isArray(imp)?true:(imp.dupOk!==undefined?imp.dupOk:true);
+        if(!data[g][s]){
+          data[g][s]={entries:[],dupOk:impDupOk};
+        } else {
+          stageObj(g,s);
+        }
+        const cur=data[g][s].entries;
+        cur.push(...impEntries);
+        if(cur.length>MAX)cur.splice(0,cur.length-MAX);
+      }
+    }
+  }
   save();
   for(const g in data)openG[g]=true;
   closeImportModal();
