@@ -5,7 +5,9 @@
      crossorigin="anonymous"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>編成記録</title>
+<meta name="description" content="Brawl Stars（ブロスタ）の試合編成や勝敗を記録し、勝率・キャラ傾向を確認できる非公式の個人用分析ツールです。キャラ編成ごとの勝率や頻出編成を集計し、プレイスタイルの振り返りに役立てられます。">
+<meta name="keywords" content="ブロスタ,Brawl Stars,編成記録,勝率,キャラ,分析,ツール,チーム編成,相性">
+<title>ブロスタ 編成記録ツール | Brawl Stars Team Log</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -135,6 +137,12 @@ button:hover{opacity:.82;}
 .sug-list{position:fixed;background:var(--sur2);border:1px solid var(--acc);border-radius:6px;z-index:300;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.5);display:none;}
 .sug-item{padding:9px 12px;font-size:.84rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .1s;}
 .sug-item:hover{background:rgba(91,141,238,.15);color:var(--acc);}
+.sw-wrap{display:flex;align-items:center;justify-content:space-between;padding:6px 0;}
+.sw-lbl{font-size:.75rem;color:var(--mut);}
+.sw-track{width:36px;height:20px;border-radius:10px;background:var(--acc);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.sw-track.off{background:#333;}
+.sw-thumb{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;}
+.sw-track:not(.off) .sw-thumb{left:18px;}
 
 /* welcome / empty */
 .welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:55vh;text-align:center;gap:10px;}
@@ -171,6 +179,11 @@ button:hover{opacity:.82;}
 </style>
 </head>
 <body>
+<div style="width:100%;background:#0f1117;border-bottom:1px solid #2a2a2a;padding:7px 16px;box-sizing:border-box">
+  <p style="font-size:10px;color:#484848;text-align:center;line-height:1.6;margin:0 auto;max-width:640px">
+    Brawl Stars（ブロスタ）の試合編成・勝敗を記録して勝率やキャラ傾向を分析できる、個人用の非公式ツールです。
+  </p>
+</div>
 <div class="app">
 <div class="sidebar" id="SB">
   <div class="s-head">
@@ -182,6 +195,11 @@ button:hover{opacity:.82;}
   </div>
   <div id="ST"></div>
   <button class="s-add" onclick="openModal('genre')">＋ ゲームモードを追加</button>
+  <div style="display:flex;gap:6px;margin:6px 14px 0">
+    <button class="s-add" style="margin:0;flex:1;padding:5px 4px;font-size:.65rem" onclick="exportData()">📤 戦績を共有</button>
+    <button class="s-add" style="margin:0;flex:1;padding:5px 4px;font-size:.65rem" onclick="$('IMP_FILE').click()">📥 戦績をダウンロード</button>
+  </div>
+  <input type="file" id="IMP_FILE" accept=".json" style="display:none" onchange="importData(event)">
 </div>
 
 <div class="main">
@@ -197,14 +215,17 @@ button:hover{opacity:.82;}
     <div id="W0" class="welcome"><div class="wico">✏️</div><div class="wtxt">ステージを選択してください</div></div>
     <div id="F0" style="display:none">
       <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px">
-        <div id="BC0"></div>
+        <div style="display:flex;align-items:center;gap:8px"><div id="BC0"></div><div id="DUP_BADGE"></div></div>
         <div style="display:flex;gap:7px">
           <button class="btns" onclick="clearStage()">クリア</button>
           <button class="btns" onclick="delStage()">削除</button>
         </div>
       </div>
       <div class="card my">
-        <div class="ctitle my">⚔️ 自分の編成</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="ctitle my" style="margin-bottom:0">⚔️ 自分の編成</div>
+          <button class="btns" style="font-size:.62rem;padding:2px 8px" onclick="fillLastEntry()">🔄 前回編成</button>
+        </div>
         <div class="chars">
           <div class="cwrap">
             <input type="text" id="w1" data-side="my" autocomplete="off" placeholder="キャラ 1">
@@ -226,7 +247,10 @@ button:hover{opacity:.82;}
         <button class="tbtn lose"   id="bL" onclick="setR('✕')">🛡️ 敵チーム勝ち</button>
       </div>
       <div class="card en">
-        <div class="ctitle en">🛡️ 敵の編成</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="ctitle en" style="margin-bottom:0">🛡️ 敵の編成</div>
+          <button class="btns" style="font-size:.62rem;padding:2px 8px" onclick="fillLastEnemy()">🔄 前回編成</button>
+        </div>
         <div class="chars">
           <div class="cwrap">
             <input type="text" id="e1" data-side="enemy" autocomplete="off" class="ei" placeholder="キャラ 1">
@@ -304,7 +328,6 @@ button:hover{opacity:.82;}
       <span style="font-size:1.1rem">🏆</span>
       <span style="font-family:'JetBrains Mono',monospace;font-size:.88rem">総合戦績</span>
     </div>
-    <div id="OV_SUMMARY" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px"></div>
     <div id="OV_WINRATE"></div>
   </div>
 
@@ -366,12 +389,49 @@ button:hover{opacity:.82;}
     <div class="mform">
       <div><div class="mlbl" id="ML1">名前</div><input type="text" id="MI1" placeholder=""></div>
       <div id="MF2" style="display:none"><div class="mlbl">モード</div><input type="text" id="MI2" readonly style="opacity:.5"></div>
+      <div id="MF3" style="display:none">
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button id="DUP_BTN_ON" onclick="setDupOk(true)" style="flex:1;padding:6px 4px;border-radius:6px;border:1px solid #5b8dee;background:rgba(91,141,238,.2);color:#5b8dee;font-size:.72rem;cursor:pointer">🏆 トロフィーマッチ</button>
+          <button id="DUP_BTN_OFF" onclick="setDupOk(false)" style="flex:1;padding:6px 4px;border-radius:6px;border:1px solid var(--bdr);background:transparent;color:var(--mut);font-size:.72rem;cursor:pointer">⚔️ ガチバトル</button>
+        </div>
+        <div id="DUP_DESC" style="font-size:.68rem;color:#5b8dee;margin-top:5px;padding:4px 8px;border-radius:4px;background:rgba(91,141,238,.07)">キャラの重複が可能です</div>
+      </div>
     </div>
     <div class="mbtns">
       <button class="mcan" onclick="closeModal()">キャンセル</button>
       <button class="mok"  onclick="confirmModal()">作成</button>
     </div>
     <div class="msg" id="MM"></div>
+  </div>
+</div>
+
+<!-- インポート確認モーダル -->
+<div class="overlay" id="IMP_OV" onclick="closeImportModal()" style="display:none"></div>
+<div id="IMP_MOD" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;width:320px;max-width:90vw">
+  <div class="modal">
+    <h3>📥 戦績をダウンロード確認</h3>
+    <p style="font-size:.82rem;margin-bottom:8px;line-height:1.6">読み込んだデータで現在のデータを<strong>上書き</strong>します。</p>
+    <p style="font-size:.75rem;color:#e06060;margin-bottom:16px">⚠️ 現在のデータはすべて失われます。よろしいですか？</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btns" onclick="closeImportModal()">キャンセル</button>
+      <button class="btns" style="background:rgba(91,141,238,.15);color:var(--acc);border-color:var(--acc)" onclick="confirmImport()">上書きする</button>
+    </div>
+  </div>
+</div>
+
+<!-- キャラ重複設定モーダル -->
+<div class="overlay" id="DUP_MOD_OV" onclick="closeDupModal()" style="display:none"></div>
+<div id="DUP_MOD" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;width:300px;max-width:90vw">
+  <div class="modal">
+    <h3>設定を変更</h3>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button id="DUP_MOD_ON" onclick="setStageDup(true)" style="flex:1;padding:8px 4px;border-radius:6px;border:1px solid #5b8dee;background:rgba(91,141,238,.2);color:#5b8dee;font-size:.75rem;cursor:pointer">🏆 トロフィーマッチ</button>
+      <button id="DUP_MOD_OFF" onclick="setStageDup(false)" style="flex:1;padding:8px 4px;border-radius:6px;border:1px solid var(--bdr);background:transparent;color:var(--mut);font-size:.75rem;cursor:pointer">⚔️ ガチバトル</button>
+    </div>
+    <div id="DUP_MOD_DESC" style="font-size:.68rem;color:#5b8dee;padding:4px 8px;border-radius:4px;background:rgba(91,141,238,.07);margin-bottom:12px">キャラの重複が可能です</div>
+    <div style="display:flex;justify-content:flex-end">
+      <button class="btns" onclick="closeDupModal()">閉じる</button>
+    </div>
   </div>
 </div>
 
@@ -417,6 +477,8 @@ let G=null,S=null,res='○',tab=0,side='my',openG={},isOverall=false;
 const MAX=20;
 
 function save(){localStorage.setItem(SK,JSON.stringify(data));}
+function getEntries(g,s){const d=data[g][s];return Array.isArray(d)?d:d.entries||[];}
+function stageObj(g,s){if(Array.isArray(data[g][s]))data[g][s]={entries:data[g][s],dupOk:true};return data[g][s];}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function $(id){return document.getElementById(id);}
 function mc(i){return['g','s','b'][i]||'';}
@@ -465,7 +527,7 @@ function renderSidebar(){
       <div class="t-rows ${openG[g]?'open':''}">
         ${Object.keys(data[g]).map(t=>`
           <div class="t-row ${G===g&&S===t?'active':''}" onclick="selTag('${esc(g)}','${esc(t)}')">
-            <span>${esc(t)}</span><span class="t-badge">${data[g][t].length}</span>
+            <span>${esc(t)}</span><span class="t-badge">${getEntries(g,t).length}</span>
           </div>`).join('')}
         <div class="t-row" style="color:var(--acc);opacity:.6" onclick="openModal('tag','${esc(g)}')">＋ ステージを追加</div>
       </div>
@@ -522,6 +584,41 @@ function selOverall(){
 }
 
 // ===== PANELS =====
+function updateDupBadge(){
+  const el=$('DUP_BADGE');
+  if(!el||!G||!S)return;
+  const dupOk=stageObj(G,S).dupOk;
+  const ts='font-size:.68rem;padding:4px 10px;border-radius:5px;cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;';
+  el.innerHTML=dupOk
+    ?`<span onclick="openDupModal()" style='${ts}border:1px solid #5b8dee;color:#5b8dee;background:rgba(91,141,238,.1)'>🏆 トロフィーマッチ <span style="font-size:.55rem;opacity:.7">▼</span></span>`
+    :`<span onclick="openDupModal()" style='${ts}border:1px solid #e06060;color:#e06060;background:rgba(220,60,60,.1)'>⚔️ ガチバトル <span style="font-size:.55rem;opacity:.7">▼</span></span>`;
+}
+function openDupModal(){
+  if(!G||!S)return;
+  $('DUP_MOD').style.display='block';
+  $('DUP_MOD_OV').style.display='block';
+  const dupOk=stageObj(G,S).dupOk;
+  $('DUP_MOD_ON').style.background=dupOk?'rgba(91,141,238,.2)':'transparent';
+  $('DUP_MOD_ON').style.borderColor=dupOk?'#5b8dee':'var(--bdr)';
+  $('DUP_MOD_ON').style.color=dupOk?'#5b8dee':'var(--mut)';
+  $('DUP_MOD_OFF').style.background=dupOk?'transparent':'rgba(220,60,60,.2)';
+  $('DUP_MOD_OFF').style.borderColor=dupOk?'var(--bdr)':'#e06060';
+  $('DUP_MOD_OFF').style.color=dupOk?'var(--mut)':'#e06060';
+  $('DUP_MOD_DESC').textContent=dupOk?'キャラの重複が可能です':'キャラの重複が不可です';
+  $('DUP_MOD_DESC').style.color=dupOk?'#5b8dee':'#e06060';
+}
+function closeDupModal(){
+  $('DUP_MOD').style.display='none';
+  $('DUP_MOD_OV').style.display='none';
+}
+function setStageDup(val){
+  if(!G||!S)return;
+  stageObj(G,S).dupOk=val;
+  save();
+  closeDupModal();
+  updateDupBadge();
+}
+
 function updatePanels(){
   exitOverall();
   $('P3').classList.remove('on');
@@ -531,7 +628,7 @@ function updatePanels(){
     $('F'+i).style.display=has?'block':'none';
     if(has)$('BC'+i).innerHTML=bcHTML(G,S);
   });
-  if(has){
+  if(has){updateDupBadge();
     renderHistory();
     if(tab===1)renderRanks();
     $('SI').value='';$('SR').innerHTML='';
@@ -582,14 +679,14 @@ function rankHTML(sorted,rowFn,isEnemy){
 // ===== OVERALL =====
 function getAllEntries(){
   const all=[];
-  for(const g in data)for(const s in data[g])all.push(...data[g][s]);
+  for(const g in data)for(const s in data[g])all.push(...getEntries(g,s));
   return all;
 }
 // 各ステージの末尾から順に最新50件を集める
 function getRecentEntries(n=50){
   const all=[];
   for(const g in data)for(const s in data[g]){
-    const en=data[g][s];
+    const en=getEntries(g,s);
     all.push(...en.slice(-n).map(e=>({...e,_g:g,_s:s})));
   }
   // 各ステージ内の順序を保ちつつ末尾n件に絞り、全体でも末尾n件
@@ -603,7 +700,7 @@ function renderOverall(){
 
   // 各モードの勝率を計算して最高値を求める
   const modeRates=Object.entries(data).map(([g,stages])=>{
-    const en=Object.values(stages).flat();
+    const en=Object.keys(stages).flatMap(s=>getEntries(g,s));
     const t=en.length,w=en.filter(e=>e.result==='○').length;
     return{g,rate:t?Math.round(w/t*100):0,t};
   }).filter(m=>m.t>0);
@@ -645,7 +742,7 @@ function renderOverall(){
   </div>`;
   for(const g in data){
     const gen=[];
-    for(const s in data[g])gen.push(...data[g][s]);
+    for(const s in data[g])gen.push(...getEntries(g,s));
     const gR=gen.slice(-30);const gLen=gR.length;
     const delBtn=`<button class="btns" style="margin-left:auto;padding:2px 8px;font-size:.62rem;background:rgba(220,60,60,.1);color:#e06060;border-color:#e06060" onmousedown="openDelModal('${esc(g)}')">🗑 削除</button>`;
     if(!gLen){
@@ -702,7 +799,7 @@ function renderOverall(){
 // ===== RANKS =====
 function renderRanks(){
   if(!G||!S)return;
-  const en=data[G][S];
+  const en=getEntries(G,S);
 
   const mc_=charStats(en,'my');
   $('mct').textContent=en.length*3+' 件';
@@ -738,7 +835,7 @@ function runSearch(){
   const el=$('SR');
   if(!q){el.innerHTML='';return;}
   if(!G||!S)return;
-  const en=data[G][S];
+  const en=getEntries(G,S);
   const matched=en.filter(e=>e[side].some(c=>c.toLowerCase().includes(q)));
   if(!matched.length){el.innerHTML='<div class="empty">該当する編成が見つかりません</div>';return;}
 
@@ -848,7 +945,7 @@ function showOvSearchSuggest(){
   const q=inp.value.trim().toLowerCase();
   // 全ステージのスコアを使う（getSuggestScoresはG/Sに依存するため独自集計）
   const allSt={};
-  for(const g in data)for(const s in data[g])data[g][s].forEach(e=>{
+  for(const g in data)for(const s in data[g])getEntries(g,s).forEach(e=>{
     e.my.forEach(c=>{if(c!=='?'){if(!allSt[c])allSt[c]={total:0,maru:0};allSt[c].total++;if(e.result==='○')allSt[c].maru++;}});
     e.enemy.forEach(c=>{if(c!=='?'){if(!allSt[c])allSt[c]={total:0,maru:0};allSt[c].total++;if(e.result==='✕')allSt[c].maru++;}});
   });
@@ -909,11 +1006,34 @@ function delEntry(i){
 // ===== INPUT =====
 function setR(r){res=r;$('bW').classList.toggle('on',r==='○');$('bL').classList.toggle('on',r==='✕');}
 
+function fillLastEnemy(){
+  if(!G||!S)return;
+  const en=getEntries(G,S);
+  if(!en.length){showMsg('MSG','前回の記録がありません','err');return;}
+  const last=en[en.length-1];
+  ['e1','e2','e3'].forEach((id,i)=>{$(id).value=last.enemy[i]==='?'?'':last.enemy[i]||'';});
+}
+
+function fillLastEntry(){
+  if(!G||!S)return;
+  const en=getEntries(G,S);
+  if(!en.length){showMsg('MSG','前回の記録がありません','err');return;}
+  const last=en[en.length-1];
+  ['w1','w2','w3'].forEach((id,i)=>{$(id).value=last.my[i]||'';});
+}
+
 function addEntry(){
   const [w1,w2,w3,e1,e2,e3]=['w1','w2','w3','e1','e2','e3'].map(id=>$(id).value.trim());
   if(!w1||!w2||!w3){showMsg('MSG','自分の編成を3キャラ入力してください','err');return;}
   const enemy=e1||e2||e3?[e1||'?',e2||'?',e3||'?']:['?','?','?'];
-  const en=data[G][S];
+  const st=stageObj(G,S);const en=st.entries;
+  // ガチバトル時のみ重複確認
+  if(!st.dupOk){
+    const allChars=[w1,w2,w3,e1||'?',e2||'?',e3||'?'].filter(v=>v!=='?');
+    if(allChars.length!==new Set(allChars).size){
+      if(!confirm('キャラクターが重複していますがよろしいですか？'))return;
+    }
+  }
   en.push({my:[w1,w2,w3],enemy,result:res});
   if(en.length>MAX)en.splice(0,en.length-MAX);
   save();
@@ -926,7 +1046,7 @@ function addEntry(){
 
 function clearStage(){
   if(!confirm(`ステージ「${S}」の記録をすべて削除しますか？`))return;
-  data[G][S]=[];save();renderRanks();renderSidebar();renderHistory();
+  stageObj(G,S).entries=[];save();renderRanks();renderSidebar();renderHistory();
 }
 function delStage(){
   if(!confirm(`ステージ「${S}」を削除しますか？`))return;
@@ -940,12 +1060,30 @@ function openModal(type,g){
   $('MI1').value='';$('MM').textContent='';
   $('MT').textContent=mIsGenre?'モードを追加':'ステージを追加';
   $('ML1').textContent=mIsGenre?'モード名':'ステージ名';
-  $('MI1').placeholder=mIsGenre?'例: ノーマル、ハード…':'例: ステージ1…';
+  $('MI1').placeholder=mIsGenre?'例: サッカー、エメラルド…':'例: ステージ1…';
   $('MF2').style.display=mIsGenre?'none':'block';
-  if(!mIsGenre)$('MI2').value=g||G||'';
+  $('MF3').style.display=mIsGenre?'none':'block';
+  if(!mIsGenre){$('MI2').value=g||G||'';setDupOk(true);}
   $('MO').classList.add('on');
   setTimeout(()=>$('MI1').focus(),50);
 }
+let _dupOk=true;
+function setDupOk(val){
+  _dupOk=val;
+  $('DUP_BTN_ON').style.background=val?'rgba(91,141,238,.2)':'transparent';
+  $('DUP_BTN_ON').style.borderColor=val?'#5b8dee':'var(--bdr)';
+  $('DUP_BTN_ON').style.color=val?'#5b8dee':'var(--mut)';
+  $('DUP_BTN_OFF').style.background=val?'transparent':'rgba(220,60,60,.2)';
+  $('DUP_BTN_OFF').style.borderColor=val?'var(--bdr)':'#e06060';
+  $('DUP_BTN_OFF').style.color=val?'var(--mut)':'#e06060';
+  const desc=$('DUP_DESC');
+  if(desc){
+    desc.textContent=val?'キャラの重複が可能です':'キャラの重複が不可です';
+    desc.style.color=val?'#5b8dee':'#e06060';
+    desc.style.background=val?'rgba(91,141,238,.07)':'rgba(220,60,60,.07)';
+  }
+}
+function getDupOk(){return _dupOk;}
 function closeModal(){$('MO').classList.remove('on');}
 function confirmModal(){
   const name=$('MI1').value.trim();
@@ -957,10 +1095,60 @@ function confirmModal(){
     const g=$('MI2').value;
     if(!data[g]){showMsg('MM','モードが見つかりません','err');return;}
     if(data[g][name]){showMsg('MM','すでに存在します','err');return;}
-    data[g][name]=[];save();closeModal();renderSidebar();selTag(g,name);
+    data[g][name]={entries:[],dupOk:getDupOk()};save();closeModal();renderSidebar();selTag(g,name);
   }
 }
 
+
+
+// ===== EXPORT / IMPORT =====
+function exportData(){
+  const json=JSON.stringify(data,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const date=new Date();
+  const ds=`${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}`;
+  a.href=url;a.download=`brawl-log-${ds}.json`;a.click();
+  URL.revokeObjectURL(url);
+}
+
+let _importData=null;
+function importData(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const parsed=JSON.parse(ev.target.result);
+      // 簡易バリデーション: オブジェクトで各値もオブジェクトであること
+      if(typeof parsed!=='object'||Array.isArray(parsed))throw new Error();
+      _importData=parsed;
+      $('IMP_OV').style.display='block';
+      $('IMP_MOD').style.display='block';
+    }catch{
+      alert('ファイルの形式が正しくありません。');
+    }
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+function closeImportModal(){
+  $('IMP_OV').style.display='none';
+  $('IMP_MOD').style.display='none';
+  _importData=null;
+}
+function confirmImport(){
+  if(!_importData)return;
+  data=_importData;
+  save();
+  for(const g in data)openG[g]=true;
+  closeImportModal();
+  G=null;S=null;
+  exitOverall();
+  renderSidebar();
+  selOverall();
+}
 
 // ===== TAB DELETE MODAL =====
 let _delG=null;
@@ -1000,7 +1188,7 @@ function closeDrawer(){$('SB').classList.remove('on');$('DO').classList.remove('
 function getSuggestScores(){
   const st={};
   if(!G||!S)return st;
-  data[G][S].forEach(e=>{
+  getEntries(G,S).forEach(e=>{
     // 自編成：自チーム勝率で加算
     e.my.forEach(c=>{
       if(c==='?')return;
@@ -1021,7 +1209,7 @@ function getSuggestScores(){
 }
 function getAllChars(){
   const set=new Set();
-  for(const g in data)for(const s in data[g])data[g][s].forEach(e=>[...e.my,...e.enemy].forEach(c=>{if(c!=='?')set.add(c);}));
+  for(const g in data)for(const s in data[g])getEntries(g,s).forEach(e=>[...e.my,...e.enemy].forEach(c=>{if(c!=='?')set.add(c);}));
   return set;
 }
 function editDist(a,b){
@@ -1069,7 +1257,15 @@ function showSuggest(inputId){
   const sl=$('SL'+inputId);
   if(!inp||!sl)return;
   const q=inp.value.trim().toLowerCase();
-  const filled=new Set(['w1','w2','w3','e1','e2','e3'].filter(id=>id!==inputId).map(id=>$(id).value.trim()).filter(Boolean));
+  const dupOk=G&&S?stageObj(G,S).dupOk:true;
+  let filled;
+  if(dupOk){
+    // トロフィー: 敵味方問わず重複許可 → filledは空
+    filled=new Set();
+  } else {
+    // ガチバトル: 全欄の入力済み（自分自身除く）を除外
+    filled=new Set(['w1','w2','w3','e1','e2','e3'].filter(id=>id!==inputId).map(id=>$(id).value.trim()).filter(Boolean));
+  }
   const scores=getSuggestScores();
   // そのステージの出現回数順、次に全ステージのキャラ（クエリあり時のみ）
   const stageEntries=Object.entries(scores).filter(([cv])=>!filled.has(cv)&&fuzzyMatch(q,cv));
@@ -1158,7 +1354,13 @@ for(const g in data)openG[g]=true;
 renderSidebar();
 selOverall();
 </script>
-<div style="width:100%;margin-top:40px;border-top:1px solid #2a2a2a;background:#0f1117;padding:16px 16px 24px;box-sizing:border-box">
+<div style="width:100%;background:#0f1117;padding:18px 16px 4px;box-sizing:border-box">
+  <p style="font-size:10px;color:#444;text-align:center;line-height:1.9;margin:0 auto;max-width:560px">
+    キャラ編成と試合結果を保存して、どの組み合わせが勝ちやすいかを分析できます。
+    戦略研究やキャラ相性の理解など、プレイスタイルの振り返りにご活用ください。
+  </p>
+</div>
+<div style="width:100%;border-top:1px solid #2a2a2a;background:#0f1117;padding:16px 16px 24px;box-sizing:border-box">
   <p style="font-size:10px;color:#555;text-align:center;line-height:1.7;margin:0 auto;max-width:500px">
     <span style="display:block;font-size:10px;color:#666;margin-bottom:4px;letter-spacing:.05em">プライバシーポリシー</span>
     当サイトではGoogleアドセンスを利用しています。広告配信事業者はCookieを使用することがあります。
