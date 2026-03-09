@@ -558,7 +558,10 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function $(id){return document.getElementById(id);}
 function mc(i){return['g','s','b'][i]||'';}
 function rc(r){return r>=60?'hi':r>=35?'md':'lo';}
-function byScore(arr){return arr.sort((a,b)=>b[1].maru-a[1].maru||b[1].total-a[1].total);}
+function byScore(arr){
+  arr.forEach(([,s])=>{s.score=s.total>0?Math.round(s.maru/s.total*100*s.total)/100:0;});
+  return arr.sort((a,b)=>b[1].score-a[1].score||b[1].total-a[1].total);
+}
 function showMsg(id,txt,type){const el=$(id);el.textContent=txt;el.className='msg '+type;setTimeout(()=>{el.textContent='';el.className='msg';},3000);}
 function bcHTML(g,s){return`<span style="font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--mut)">${esc(g)} / </span><span style="font-family:'JetBrains Mono',monospace;font-size:.88rem">${esc(s)}</span>`;}
 
@@ -582,7 +585,7 @@ function sw(n){
     $('OV_P2_SEARCH').style.display=n===2?'block':'none';
     $('W2').style.display='none';$('F2').style.display='none';
     if(n===1)swOvChar(0);
-    if(n===2){$('ovSI').value='';$('ovSR').innerHTML='';setOvSide('all');}
+    if(n===2){setOvSide(ovSide);}
   } else {
     [0,1,2].forEach(i=>{$('T'+i).classList.toggle('on',i===n);$('P'+i).classList.toggle('on',i===n);});
     $('P3').classList.remove('on');
@@ -808,7 +811,7 @@ function renderOverall(){
   const r50w=r50.filter(e=>e.result==='○').length;
   const r50rate=r50len?Math.round(r50w/r50len*100):0;
   let wrHTML=`<div class="card" style="margin-bottom:10px">
-    <div class="rhead"><span class="rlbl">🌐 全体</span><span class="rtot">直近${r50len}試合</span></div>
+    <div class="rhead"><span class="rlbl">📊 マップ別平均</span><span class="rtot">直近${r50len}試合</span></div>
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
       <div class="bar-w" style="width:100%;flex:1"><div class="bar" style="width:${r50rate}%;background:var(--win)"></div></div>
       <span style="font-family:'JetBrains Mono',monospace;font-size:.9rem;color:var(--win);flex-shrink:0">${r50rate}%</span>
@@ -904,6 +907,11 @@ function setSide(s){
   $('SI').value='';$('SR').innerHTML='';
 }
 
+// ===== SEARCH HISTORY =====
+function addSearchHistory(q){
+  // 検索履歴は現状UIに表示していないため空実装
+}
+
 function runSearch(){
   const q=$('SI').value.trim().toLowerCase();
   if(q)addSearchHistory(q);
@@ -948,7 +956,7 @@ function setOvSide(s){
   $('ovSMy').classList.toggle('on',s==='my');
   $('ovSEn').classList.toggle('on',s==='enemy');
   $('ovSQ').textContent=s==='all'?'🌐 全体で検索':s==='my'?'⚔️ 自分キャラで検索':'🛡️ 敵キャラで検索';
-  $('ovSI').value='';$('ovSR').innerHTML='';
+  runOvSearch();
 }
 function runOvSearch(){
   const q=$('ovSI').value.trim().toLowerCase();
@@ -996,12 +1004,25 @@ function runOvSearch(){
   const swin=ovSide==='my'?'○':'✕';
   const lClass=isEn?'en':'my';
   const pClass=isEn?'ep':'';
-  const co={};
+
+  // 同チーム（味方）に出たキャラのスコア
+  const coAlly={};
   matched.forEach(e=>e[ovSide].filter(c=>!c.toLowerCase().includes(q)&&c!=='?').forEach(c=>{
-    if(!co[c])co[c]={total:0,maru:0};
-    co[c].total++;if(e.result===swin)co[c].maru++;
+    if(!coAlly[c])coAlly[c]={total:0,maru:0};
+    coAlly[c].total++;if(e.result===swin)coAlly[c].maru++;
   }));
-  const coS=byScore(Object.entries(co));
+  const coAllyS=byScore(Object.entries(coAlly));
+
+  // 対面（敵）に出たキャラのスコア（検索キャラが自チームにいるとき対面した敵）
+  const oppSide=isEn?'my':'enemy';
+  const oppWin=isEn?'✕':'○';
+  const coOpp={};
+  matched.forEach(e=>e[oppSide].filter(c=>c!=='?').forEach(c=>{
+    if(!coOpp[c])coOpp[c]={total:0,maru:0};
+    coOpp[c].total++;if(e.result===oppWin)coOpp[c].maru++;
+  }));
+  const coOppS=byScore(Object.entries(coOpp));
+
   const cf={};
   matched.forEach(e=>{
     const k=[...e[ovSide]].sort().join(' / ');
@@ -1009,8 +1030,13 @@ function runOvSearch(){
     cf[k].total++;if(e.result===swin)cf[k].maru++;
   });
   const cfS=byScore(Object.entries(cf));
+
+  const allyLabel=isEn?'🛡️ 一緒にいた敵キャラ':'⚔️ 一緒にいた味方キャラ';
+  const oppLabel=isEn?'⚔️ 対面した味方キャラ':'🛡️ 対面した敵キャラ';
+
   el.innerHTML=
-    (coS.length?`<div class="card"><div class="rhead"><span class="rlbl ${lClass}">🤝 一緒に出やすいキャラ</span><span class="rtot">${coS.length} 種</span></div>${rankHTML(coS,(k)=>isEn?`<span class="rname" style="color:var(--ene)">${esc(k)}</span>`:`<span class="rname">${esc(k)}</span>`,isEn)}</div>`:'')+
+    (coAllyS.length?`<div class="card"><div class="rhead"><span class="rlbl ${lClass}">${allyLabel}</span><span class="rtot">${coAllyS.length} 種 / ${matched.length} 試合</span></div>${rankHTML(coAllyS,(k)=>`<span class="rname">${esc(k)}</span>`,isEn)}</div>`:'')+
+    (coOppS.length?`<div class="card"><div class="rhead"><span class="rlbl ${isEn?'my':'en'}">${oppLabel}</span><span class="rtot">${coOppS.length} 種 / ${matched.length} 試合</span></div>${rankHTML(coOppS,(k)=>`<span class="rname">${esc(k)}</span>`,!isEn)}</div>`:'')+
     `<div class="card"><div class="rhead"><span class="rlbl ${lClass}">🔗 一緒に出た編成</span><span class="rtot">${cfS.length} 種 / ${matched.length} 件</span></div>${rankHTML(cfS,(k,i)=>`<div class="pills">${k.split(' / ').map(w=>`<span class="pill ${pClass} ${i===0?'g':''} ${w.toLowerCase().includes(q)?'hi':''}">${esc(w)}</span>`).join('')}</div>`,isEn)}</div>`;
 }
 function showOvSearchSuggest(){
@@ -1034,10 +1060,12 @@ function showOvSearchSuggest(){
     for(let i=0;i<=cl.length-q.length+maxErr;i++){if(editDist(q,cl.slice(i,i+q.length+maxErr))<=maxErr)return true;}
     return false;
   };
-  const sorted=Object.entries(allSt).sort((a,b)=>b[1].maru-a[1].maru||b[1].total-a[1].total).filter(([c])=>match(q,c));
+  // masterCharsにあってallStにないキャラも追加
+  masterChars.forEach(c=>{if(!allSt[c])allSt[c]={total:0,maru:0};});
+  const sorted=Object.entries(allSt).sort((a,b)=>b[1].maru-a[1].maru||b[1].total-a[1].total).filter(([cv])=>match(q,cv));
   if(!sorted.length){sl.style.display='none';return;}
-  sl.innerHTML=sorted.slice(0,7).map(([c])=>
-    `<div class="sug-item" onmousedown="pickOvSearchSuggest('${esc(c)}')">${esc(c)}</div>`
+  sl.innerHTML=sorted.slice(0,7).map(([cv])=>
+    `<div class="sug-item" onmousedown="pickOvSearchSuggest('${esc(cv)}')">${esc(cv)}</div>`
   ).join('');
   const rect=inp.getBoundingClientRect();
   sl.style.left=rect.left+'px';
@@ -1349,7 +1377,7 @@ function getSuggestScores(){
       if(e.result==='✕')st[c].maru++;
     });
   });
-  // スコア = 出撃数 × 勝率 = maru
+  // スコア = 勝率(%) × 出現数 / 100
   return Object.fromEntries(Object.entries(st).map(([c,s])=>[c,s.maru]));
 }
 // ===== CHARACTER MASTER LIST =====
