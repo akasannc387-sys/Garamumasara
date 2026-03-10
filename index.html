@@ -85,6 +85,7 @@ button:hover{opacity:.82;}
 .btnp{background:var(--acc);color:#fff;width:100%;}
 .btns{background:transparent;border:1px solid var(--bdr);color:var(--mut);font-size:.6rem;padding:3px 8px;}
 .btns:hover{border-color:var(--acc2);color:var(--acc2);}
+.btns.on{border-color:var(--acc);color:var(--acc);background:rgba(91,141,238,.12);}
 .msg{font-family:'JetBrains Mono',monospace;font-size:.66rem;margin-top:7px;min-height:15px;}
 .msg.ok{color:var(--win);}
 .msg.err{color:var(--lose);}
@@ -157,6 +158,7 @@ button:hover{opacity:.82;}
 .empty{font-size:.76rem;color:var(--mut);text-align:center;padding:18px 0;}
 
 /* modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;cursor:pointer;}
 .moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;}
 .moverlay.on{display:flex;}
 .modal{background:var(--sur);border:1px solid var(--bdr);border-radius:12px;padding:22px;width:340px;max-width:90vw;}
@@ -329,15 +331,6 @@ button:hover{opacity:.82;}
     </div>
   </div>
 
-  <!-- 総合戦績 -->
-  <div class="panel" id="P3">
-    <div style="margin-bottom:18px;display:flex;align-items:center;gap:8px">
-      <span style="font-size:1.1rem">🏆</span>
-      <span style="font-family:'JetBrains Mono',monospace;font-size:.88rem">総合戦績</span>
-    </div>
-    <div id="OV_WINRATE"></div>
-  </div>
-
   <!-- 検索 -->
   <div class="panel" id="P2">
     <!-- 総合検索（総合戦績モード時） -->
@@ -498,6 +491,21 @@ button:hover{opacity:.82;}
   </div>
 </div>
 
+<!-- ゲームモード詳細モーダル -->
+<div id="GD_OV" onclick="closeDetailModal()" style="display:none;position:fixed;inset:0;z-index:209;background:rgba(0,0,0,.5);cursor:pointer"></div>
+<div id="GD_MOD" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;width:480px;max-width:96vw;max-height:80vh;overflow:hidden;pointer-events:none">
+  <div class="modal" style="pointer-events:auto;overflow-y:auto;max-height:80vh">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h3 id="GD_TITLE" style="margin:0"></h3>
+      <button class="btns" style="font-size:.62rem;padding:2px 8px;color:#e06060;border-color:#e06060;background:rgba(220,60,60,.1)" onclick="openDelFromDetail()">🗑 削除</button>
+    </div>
+    <div id="GD_BODY"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px">
+      <button class="btns" onclick="closeDetailModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <!-- タブ削除確認モーダル -->
 <div class="overlay" id="DO2" onclick="closeDelModal()" style="display:none"></div>
 <div id="DM" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;width:320px;max-width:90vw">
@@ -559,7 +567,14 @@ function $(id){return document.getElementById(id);}
 function mc(i){return['g','s','b'][i]||'';}
 function rc(r){return r>=60?'hi':r>=35?'md':'lo';}
 function byScore(arr){
-  arr.forEach(([,s])=>{s.score=s.total>0?Math.round(s.maru/s.total*100*s.total)/100:0;});
+  // α = √(集計対象の総試合数), score = (勝利数 + α × 全体勝率) / (出撃数 + α)
+  const totalN=arr.reduce((s,[,v])=>s+v.total,0);
+  const globalRate=totalN>0?arr.reduce((s,[,v])=>s+v.maru,0)/totalN:0.5;
+  const alpha=Math.sqrt(totalN)/3;
+  arr.forEach(([,s])=>{
+    const base=s.total>0?(s.maru+alpha*globalRate)/(s.total+alpha):globalRate;
+    s.score=base*Math.sqrt(s.total);
+  });
   return arr.sort((a,b)=>b[1].score-a[1].score||b[1].total-a[1].total);
 }
 function showMsg(id,txt,type){const el=$(id);el.textContent=txt;el.className='msg '+type;setTimeout(()=>{el.textContent='';el.className='msg';},3000);}
@@ -571,7 +586,7 @@ function sw(n){
   if(isOverall){
     // 総合戦績モード: T0非表示、T1=勝率、T2=頻出キャラ
     [0,1,2].forEach(i=>{$('T'+i).classList.toggle('on',i===n);});
-    $('P3').classList.remove('on');
+    ;
     // P0: 総合勝率、P1: 頻出キャラ、P2非表示
     $('P0').classList.toggle('on',n===0);
     $('P1').classList.toggle('on',n===1);
@@ -588,7 +603,7 @@ function sw(n){
     if(n===2){setOvSide(ovSide);}
   } else {
     [0,1,2].forEach(i=>{$('T'+i).classList.toggle('on',i===n);$('P'+i).classList.toggle('on',i===n);});
-    $('P3').classList.remove('on');
+    ;
     if(n===1)renderRanks();
     if(n===2)runSearch();
   }
@@ -626,7 +641,7 @@ function exitOverall(){
   $('F2').style.display='';
   $('OB').style.color='var(--mut)';$('OB').style.background='';
 }
-function selTag(g,t){G=g;S=t;exitOverall();closeDrawer();renderSidebar();updatePanels();$('P3').classList.remove('on');}
+function selTag(g,t){G=g;S=t;exitOverall();closeDrawer();renderSidebar();updatePanels();}
 function swOvChar(n){
   [0,1,2].forEach(i=>$('oTab'+i).classList.toggle('on',i===n));
   const lbls=['全体','⚔️ 自チーム','🛡️ 敵チーム'];
@@ -649,7 +664,7 @@ function selOverall(){
   $('T0').style.display='';
   $('OB').style.color='var(--acc)';$('OB').style.background='rgba(91,141,238,.1)';
   // P3非表示、P0=勝率として表示
-  [0,1,2].forEach(i=>{$('P'+i).classList.remove('on');});$('P3').classList.remove('on');
+  [0,1,2].forEach(i=>{$('P'+i).classList.remove('on');});
   $('P0').classList.add('on');
   $('W0').style.display='none';$('F0').style.display='none';
   $('OV_P0').style.display='block';
@@ -699,7 +714,7 @@ function setStageDup(val){
 
 function updatePanels(){
   exitOverall();
-  $('P3').classList.remove('on');
+  ;
   const has=G&&S;
   [0,1,2].forEach(i=>{
     $('W'+i).style.display=has?'none':'flex';
@@ -822,15 +837,15 @@ function renderOverall(){
     const gen=[];
     for(const s in data[g])gen.push(...getEntries(g,s));
     const gR=gen.slice(-30);const gLen=gR.length;
-    const delBtn=`<button class="btns" style="margin-left:auto;padding:2px 8px;font-size:.62rem;background:rgba(220,60,60,.1);color:#e06060;border-color:#e06060" onmousedown="openDelModal('${esc(g)}')">🗑 削除</button>`;
+    const detailBtn=`<button class="btns" style="margin-left:auto;padding:2px 8px;font-size:.62rem" onmousedown="openDetailModal('${esc(g)}')">詳細</button>`;
     if(!gLen){
-      wrHTML+=`<div class="card" style="margin-bottom:10px"><div class="rhead"><span class="rlbl my">${esc(g)}</span>${delBtn}</div><div style="padding:8px 0;font-size:.75rem;color:var(--mut);font-family:'JetBrains Mono',monospace">NO DATA</div></div>`;
+      wrHTML+=`<div class="card" style="margin-bottom:10px"><div class="rhead"><span class="rlbl my">${esc(g)}</span>${detailBtn}</div><div style="padding:8px 0;font-size:.75rem;color:var(--mut);font-family:'JetBrains Mono',monospace">NO DATA</div></div>`;
       continue;
     }
     const gW=gR.filter(e=>e.result==='○').length;
     const gRate=Math.round(gW/gLen*100);
     wrHTML+=`<div class="card" style="margin-bottom:10px">
-      <div class="rhead"><span class="rlbl my">${esc(g)}</span><span class="rtot">直近${gLen}試合</span>${delBtn}</div>
+      <div class="rhead"><span class="rlbl my">${esc(g)}</span><span class="rtot">直近${gLen}試合</span>${detailBtn}</div>
       <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
         <div class="bar-w" style="width:100%;flex:1"><div class="bar" style="width:${gRate}%;background:var(--acc)"></div></div>
         <span style="font-family:'JetBrains Mono',monospace;font-size:.9rem;color:var(--acc);flex-shrink:0">${gRate}%</span>
@@ -908,13 +923,8 @@ function setSide(s){
 }
 
 // ===== SEARCH HISTORY =====
-function addSearchHistory(q){
-  // 検索履歴は現状UIに表示していないため空実装
-}
-
 function runSearch(){
   const q=$('SI').value.trim().toLowerCase();
-  if(q)addSearchHistory(q);
   const el=$('SR');
   if(!q){el.innerHTML='';return;}
   if(!G||!S)return;
@@ -960,7 +970,6 @@ function setOvSide(s){
 }
 function runOvSearch(){
   const q=$('ovSI').value.trim().toLowerCase();
-  if(q)addSearchHistory(q);
   const el=$('ovSR');
   if(!q){el.innerHTML='';return;}
   const all=getAllEntries();
@@ -1325,6 +1334,98 @@ function confirmImport(mode){
 
 // ===== TAB DELETE MODAL =====
 let _delG=null;
+
+function openDetailModal(g){
+  if(!data[g])return;
+  $('GD_TITLE').textContent=g;
+  $('GD_OV').style.display='block';
+  $('GD_MOD').style.display='block';
+  // ステージ別戦績
+  let html='';
+  for(const s in data[g]){
+    const en=getEntries(g,s);
+    const total=en.length;
+    const wins=en.filter(e=>e.result==='○').length;
+    const rate=total?Math.round(wins/total*100):0;
+    const dupOk=stageObj(g,s).dupOk;
+    const badge=dupOk
+      ?`<span style="font-size:.55rem;padding:1px 5px;border-radius:3px;border:1px solid #5b8dee;color:#5b8dee;margin-left:5px">🏆</span>`
+      :`<span style="font-size:.55rem;padding:1px 5px;border-radius:3px;border:1px solid #e06060;color:#e06060;margin-left:5px">⚔️</span>`;
+    if(!total){
+      html+=`<div style="padding:8px 0;border-bottom:1px solid var(--bdr)"><div style="display:flex;align-items:center;font-size:.78rem;margin-bottom:4px"><span>${esc(s)}</span>${badge}</div><span style="font-size:.7rem;color:var(--mut)">NO DATA</span></div>`;
+      continue;
+    }
+    html+=`<div style="padding:8px 0;border-bottom:1px solid var(--bdr)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+        <div style="display:flex;align-items:center;font-size:.78rem"><span>${esc(s)}</span>${badge}</div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--acc)">${rate}%</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="bar-w" style="flex:1;position:relative;height:8px;border-radius:4px;overflow:hidden;background:var(--sur2)">
+          <div style="position:absolute;left:0;top:0;height:100%;width:${rate}%;background:var(--acc);border-radius:4px"></div>
+          <div style="position:absolute;right:0;top:0;height:100%;width:${100-rate}%;background:#e06060;border-radius:4px;opacity:.5"></div>
+        </div>
+        <span style="font-size:.62rem;color:var(--mut);white-space:nowrap">${wins}勝 / ${total}試合</span>
+      </div>
+    </div>`;
+  }
+  // モード全体の合計
+  const allEn=Object.keys(data[g]).flatMap(s=>getEntries(g,s));
+  const tot=allEn.length,w=allEn.filter(e=>e.result==='○').length;
+  const totRate=tot?Math.round(w/tot*100):0;
+  const summary=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;margin-bottom:4px;border-bottom:1px solid var(--bdr)">
+    <span style="font-size:.75rem;font-weight:700">合計</span>
+    <span style="font-size:.75rem;color:var(--win);font-family:'JetBrains Mono',monospace">${totRate}% <span style="font-size:.62rem;color:var(--mut)">${w}勝 / ${tot}試合</span></span>
+  </div>`;
+
+  // キャラスコアランキング（自チーム）
+  const mySt={},enSt={};
+  allEn.forEach(e=>{
+    e.my.forEach(c=>{if(c!=='?'){if(!mySt[c])mySt[c]={total:0,maru:0};mySt[c].total++;if(e.result==='○')mySt[c].maru++;}});
+    e.enemy.forEach(c=>{if(c!=='?'){if(!enSt[c])enSt[c]={total:0,maru:0};enSt[c].total++;if(e.result==='✕')enSt[c].maru++;}});
+  });
+  // 全体（自+敵合算）
+  const allSt={};
+  Object.entries(mySt).forEach(([c,v])=>{if(!allSt[c])allSt[c]={total:0,maru:0};allSt[c].total+=v.total;allSt[c].maru+=v.maru;});
+  Object.entries(enSt).forEach(([c,v])=>{if(!allSt[c])allSt[c]={total:0,maru:0};allSt[c].total+=v.total;allSt[c].maru+=v.maru;});
+  const myRank=byScore(Object.entries(mySt));
+  const enRank=byScore(Object.entries(enSt));
+  const allRank=byScore(Object.entries(allSt));
+  const gdId=`gd_${Date.now()}`;
+  const charSection=allEn.length?`
+    <div style="margin-top:14px">
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button class="btns on" id="${gdId}_all" onclick="gdSwTab('${gdId}','all')" style="font-size:.65rem;padding:2px 8px">🌐 全体</button>
+        <button class="btns" id="${gdId}_my"  onclick="gdSwTab('${gdId}','my')"  style="font-size:.65rem;padding:2px 8px">⚔️ 自チーム</button>
+        <button class="btns" id="${gdId}_en"  onclick="gdSwTab('${gdId}','en')"  style="font-size:.65rem;padding:2px 8px">🛡️ 敵チーム</button>
+      </div>
+      <div id="${gdId}_body_all">${rankHTML(allRank,(k)=>`<span class="rname">${esc(k)}</span>`,false)}</div>
+      <div id="${gdId}_body_my"  style="display:none">${rankHTML(myRank,(k)=>`<span class="rname">${esc(k)}</span>`,false)}</div>
+      <div id="${gdId}_body_en"  style="display:none">${rankHTML(enRank,(k)=>`<span class="rname" style="color:var(--ene)">${esc(k)}</span>`,true)}</div>
+    </div>`:
+    '';
+
+  $('GD_BODY').innerHTML=summary+`<div style="margin-bottom:4px">`+html+`</div>`+charSection;
+  $('GD_MOD').dataset.g=g;
+  $('GD_MOD').dataset.gdid=gdId;
+}
+function gdSwTab(id,tab){
+  ['all','my','en'].forEach(t=>{
+    $(id+'_body_'+t).style.display=t===tab?'':'none';
+    const btn=$(id+'_'+t);
+    if(btn)btn.classList.toggle('on',t===tab);
+  });
+}
+function closeDetailModal(){
+  $('GD_OV').style.display='none';
+  $('GD_MOD').style.display='none';
+}
+function openDelFromDetail(){
+  const g=$('GD_MOD').dataset.g;
+  closeDetailModal();
+  openDelModal(g);
+}
+
 function openDelModal(g){
   _delG=g;
   $('DM_TITLE').textContent='タブを削除';
