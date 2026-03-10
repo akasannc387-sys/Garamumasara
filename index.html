@@ -206,7 +206,7 @@ button:hover{opacity:.82;}
   <button class="s-add" onclick="openModal('genre')">＋ ゲームモードを追加</button>
   <div style="display:flex;gap:6px;margin:6px 14px 0">
     <button class="s-add" style="margin:0;flex:1;padding:5px 4px;font-size:.65rem" onclick="openExportModal()">📤 戦績を共有</button>
-    <button class="s-add" style="margin:0;flex:1;padding:5px 4px;font-size:.65rem" onclick="$('IMP_FILE').click()">📥 戦績をダウンロード</button>
+    <button class="s-add" style="margin:0;flex:1;padding:5px 4px;font-size:.65rem" onclick="$('IMP_FILE').click()">📥 戦績をファイルで入力</button>
   </div>
   <input type="file" id="IMP_FILE" accept=".json" style="display:none" onchange="importData(event)">
 </div>
@@ -356,8 +356,14 @@ button:hover{opacity:.82;}
           <div id="CL_LIST" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px"></div>
           <div id="CL_EDIT" style="display:none;margin-top:10px;border-top:1px solid var(--bdr);padding-top:10px">
             <div style="display:flex;gap:6px;margin-bottom:6px">
-              <input type="text" id="CL_INPUT" placeholder="キャラ名を追加…" style="flex:1;font-size:.75rem">
-              <button class="btns" style="font-size:.7rem;padding:4px 8px" onclick="addMasterChar()">追加</button>
+              <input type="text" id="CL_INPUT" placeholder="キャラ名を入力 / タップして選択…" style="flex:1;font-size:.75rem" oninput="clInputChange()">
+            </div>
+            <div id="CL_ADD_ROW" style="display:flex;gap:6px;margin-bottom:6px">
+              <button class="btns" style="font-size:.7rem;padding:4px 8px;flex:1" onclick="addMasterChar()">➕ 追加</button>
+            </div>
+            <div id="CL_EDIT_ROW" style="display:none;gap:6px;margin-bottom:6px">
+              <button class="btns" style="font-size:.7rem;padding:4px 8px;flex:1;border-color:var(--acc);color:var(--acc)" onclick="renameMasterChar()">✏️ 名前変更</button>
+              <button class="btns" style="font-size:.7rem;padding:4px 8px;flex:1;border-color:#e06060;color:#e06060" onclick="deleteMasterCharSelected()">🗑 削除</button>
             </div>
             <div style="display:flex;justify-content:flex-end">
               <button class="btns" style="font-size:.62rem;padding:2px 6px;color:var(--mut)" onclick="syncMasterFromData()">📥 記録から同期</button>
@@ -491,6 +497,23 @@ button:hover{opacity:.82;}
   </div>
 </div>
 
+<!-- キャラ名変更モーダル -->
+<div class="overlay" id="RN_OV" onclick="closeRenameModal()" style="display:none"></div>
+<div id="RN_MOD" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;width:300px;max-width:92vw">
+  <div class="modal">
+    <div style="font-size:.85rem;font-weight:700;margin-bottom:12px">✏️ キャラ名を変更</div>
+    <div style="font-size:.72rem;color:var(--mut);margin-bottom:6px">変更前</div>
+    <div id="RN_OLD" style="font-size:.85rem;font-family:'JetBrains Mono',monospace;margin-bottom:12px;padding:6px 8px;background:var(--sur2);border-radius:4px"></div>
+    <div style="font-size:.72rem;color:var(--mut);margin-bottom:6px">変更後</div>
+    <input id="RN_NEW" type="text" style="width:100%;box-sizing:border-box;background:var(--sur2);border:1px solid var(--bdr);border-radius:4px;padding:6px 8px;color:var(--txt);font-size:.85rem;margin-bottom:14px" placeholder="新しいキャラ名">
+    <div id="RN_MSG" style="font-size:.7rem;color:#e06060;margin-bottom:8px;min-height:1em"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btns" onclick="closeRenameModal()">キャンセル</button>
+      <button class="btns" style="border-color:var(--acc);color:var(--acc)" onclick="confirmRename()">変更する</button>
+    </div>
+  </div>
+</div>
+
 <!-- ゲームモード詳細モーダル -->
 <div id="GD_OV" onclick="closeDetailModal()" style="display:none;position:fixed;inset:0;z-index:209;background:rgba(0,0,0,.5);cursor:pointer"></div>
 <div id="GD_MOD" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;width:480px;max-width:96vw;max-height:80vh;overflow:hidden;pointer-events:none">
@@ -557,7 +580,7 @@ let data=JSON.parse(localStorage.getItem(SK)||'{}');
   }
 })();
 let G=null,S=null,res='○',tab=0,side='my',openG={},isOverall=false;
-const MAX=20;
+const MAX=30;
 
 function save(){localStorage.setItem(SK,JSON.stringify(data));}
 function getEntries(g,s){const d=data[g][s];return Array.isArray(d)?d:d.entries||[];}
@@ -1227,7 +1250,16 @@ function closeExportModal(){
   $('EXP_MOD').style.display='none';
 }
 function exportData(){
-  const json=JSON.stringify({data,chars:masterChars},null,2);
+  // 各ステージ最大200試合分に絞る
+  const exportDataObj={};
+  for(const g in data){
+    exportDataObj[g]={};
+    for(const s in data[g]){
+      const obj=stageObj(g,s);
+      exportDataObj[g][s]={entries:obj.entries.slice(-200),dupOk:obj.dupOk};
+    }
+  }
+  const json=JSON.stringify({data:exportDataObj,chars:masterChars},null,2);
   const blob=new Blob([json],{type:'application/json'});
   const date=new Date();
   const ds=`${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}`;
@@ -1486,6 +1518,97 @@ const SK_CHARS='brawlChars';
 let masterChars=JSON.parse(localStorage.getItem(SK_CHARS)||'[]');
 function saveChars(){localStorage.setItem(SK_CHARS,JSON.stringify(masterChars));}
 
+
+function openRenameModal(name){
+  $('RN_OLD').textContent=name;
+  $('RN_NEW').value=name;
+  $('RN_MSG').textContent='';
+  $('RN_OV').style.display='block';
+  $('RN_MOD').style.display='block';
+  setTimeout(()=>{$('RN_NEW').focus();$('RN_NEW').select();},50);
+}
+function closeRenameModal(){
+  $('RN_OV').style.display='none';
+  $('RN_MOD').style.display='none';
+}
+function confirmRename(){
+  const oldName=$('RN_OLD').textContent.trim();
+  const newName=$('RN_NEW').value.trim();
+  if(!newName){$('RN_MSG').textContent='新しい名前を入力してください';return;}
+  if(newName===oldName){closeRenameModal();return;}
+  if(masterChars.includes(newName)){$('RN_MSG').textContent='その名前はすでに存在します';return;}
+  // masterChars置換
+  const idx=masterChars.indexOf(oldName);
+  if(idx>=0)masterChars[idx]=newName;
+  saveChars();
+  // 全エントリ置換
+  for(const g in data)for(const s in data[g]){
+    getEntries(g,s).forEach(e=>{
+      e.my=e.my.map(c=>c===oldName?newName:c);
+      e.enemy=e.enemy.map(c=>c===oldName?newName:c);
+    });
+  }
+  save();
+  closeRenameModal();
+  renderCharList();
+}
+
+
+let _clSelected=null;
+function selectCharTag(name){
+  _clSelected=name;
+  $('CL_INPUT').value=name;
+  $('CL_ADD_ROW').style.display='none';
+  $('CL_EDIT_ROW').style.display='flex';
+  // タグをハイライト
+  masterChars.forEach(c=>{
+    const el=document.getElementById('cltag_'+c);
+    if(el)el.style.borderColor=c===name?'var(--acc)':'var(--bdr)';
+  });
+}
+function clInputChange(){
+  if(_clSelected){
+    _clSelected=null;
+    $('CL_ADD_ROW').style.display='flex';
+    $('CL_EDIT_ROW').style.display='none';
+    masterChars.forEach(c=>{
+      const el=document.getElementById('cltag_'+c);
+      if(el)el.style.borderColor='var(--bdr)';
+    });
+  }
+}
+function renameMasterChar(){
+  const newName=$('CL_INPUT').value.trim();
+  if(!newName||!_clSelected)return;
+  if(newName===_clSelected){_clSelected=null;$('CL_ADD_ROW').style.display='flex';$('CL_EDIT_ROW').style.display='none';return;}
+  if(masterChars.includes(newName)){showMsg('MSG','その名前はすでに存在します','err');return;}
+  const idx=masterChars.indexOf(_clSelected);
+  if(idx>=0)masterChars[idx]=newName;
+  saveChars();
+  for(const g in data)for(const s in data[g]){
+    getEntries(g,s).forEach(e=>{
+      e.my=e.my.map(c=>c===_clSelected?newName:c);
+      e.enemy=e.enemy.map(c=>c===_clSelected?newName:c);
+    });
+  }
+  save();
+  _clSelected=null;
+  $('CL_INPUT').value='';
+  $('CL_ADD_ROW').style.display='flex';
+  $('CL_EDIT_ROW').style.display='none';
+  renderCharList();
+  showMsg('MSG',`「${newName}」に変更しました`,'ok');
+}
+function deleteMasterCharSelected(){
+  if(!_clSelected)return;
+  if(!confirm(`「${_clSelected}」をキャラ一覧から削除しますか？
+（記録データは変更されません）`))return;
+  delMasterChar(_clSelected);
+  _clSelected=null;
+  $('CL_INPUT').value='';
+  $('CL_ADD_ROW').style.display='flex';
+  $('CL_EDIT_ROW').style.display='none';
+}
 function addMasterChar(){
   const inp=$('CL_INPUT');
   const val=inp.value.trim();
@@ -1533,10 +1656,7 @@ function renderCharList(){
   cnt.textContent=masterChars.length+' 件';
   if(!masterChars.length){el.innerHTML='<span style="font-size:.72rem;color:var(--mut)">未登録</span>';return;}
   el.innerHTML=masterChars.map(c=>
-    `<span style="display:inline-flex;align-items:center;gap:3px;background:var(--sur2);border:1px solid var(--bdr);border-radius:4px;padding:2px 6px;font-size:.7rem">
-      <span onclick="_charEditMode?null:($('ovSI').value='${esc(c)}',runOvSearch());" style="cursor:${_charEditMode?'default':'pointer'}">${esc(c)}</span>
-      ${_charEditMode?`<span onclick="delMasterChar('${esc(c)}')" style="cursor:pointer;color:#e06060;font-size:.65rem;padding-left:2px">×</span>`:''}
-    </span>`
+    `<span id="cltag_${esc(c)}" onclick="_charEditMode?selectCharTag('${esc(c)}'):($('ovSI').value='${esc(c)}',runOvSearch());" style="display:inline-flex;align-items:center;gap:3px;background:var(--sur2);border:1px solid var(--bdr);border-radius:4px;padding:2px 6px;font-size:.7rem;cursor:pointer;transition:border-color .15s">${esc(c)}</span>`
   ).join('');
 }
 
