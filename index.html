@@ -438,9 +438,18 @@ button:hover{opacity:.82;}
     <h3>📤 戦績を共有</h3>
     <div id="EXP_STEP1">
       <p style="font-size:.82rem;margin-bottom:16px;line-height:1.6">データをファイルとしてダウンロードします。<br>よろしいですか？</p>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px">
+        <button class="btns" style="text-align:left;padding:10px 12px;line-height:1.5" onclick="sendToTierList()">
+          <div style="font-size:.8rem;color:var(--acc)">🏆 ティア表を生成</div>
+          <div style="font-size:.65rem;color:var(--mut);margin-top:2px">Brawl Tier Genでティア表を自動生成します。</div>
+        </button>
+        <button class="btns" style="text-align:left;padding:10px 12px;line-height:1.5" onclick="exportStep2()">
+          <div style="font-size:.8rem;color:var(--acc)">📥 ファイルをダウンロード</div>
+          <div style="font-size:.65rem;color:var(--mut);margin-top:2px">データをJSONファイルとして保存します。</div>
+        </button>
+      </div>
+      <div style="display:flex;justify-content:flex-end">
         <button class="btns" onclick="closeExportModal()">キャンセル</button>
-        <button class="btns" style="background:rgba(91,141,238,.15);color:var(--acc);border-color:var(--acc)" onclick="exportStep2()">ダウンロード</button>
       </div>
     </div>
     <div id="EXP_STEP2" style="display:none">
@@ -1248,6 +1257,33 @@ function openExportModal(){
 function closeExportModal(){
   $('EXP_OV').style.display='none';
   $('EXP_MOD').style.display='none';
+}
+
+const TIER_URL='https://garamumasara-v2.vercel.app/';
+let _tierWin=null;
+function sendToTierList(){
+  closeExportModal();
+  // 出力データ構築（最大200件）
+  const exportDataObj={};
+  for(const g in data){
+    exportDataObj[g]={};
+    for(const s in data[g]){
+      const obj=stageObj(g,s);
+      exportDataObj[g][s]={entries:obj.entries.slice(-200),dupOk:obj.dupOk};
+    }
+  }
+  const payload={data:exportDataObj,chars:masterChars};
+  // ティア表サイトを開いてpostMessage
+  _tierWin=window.open(TIER_URL,'brawl_tier_gen');
+  // ページ読み込み完了を待ってから送信
+  const send=()=>{
+    try{
+      _tierWin.postMessage({type:'BRAWL_BRAIN_DATA',payload},'*');
+    }catch(e){}
+  };
+  // 少し待ってから送信（読み込み時間を考慮）
+  setTimeout(send,1500);
+  setTimeout(send,3000); // 念のため再送
 }
 function exportData(){
   // 各ステージ最大200試合分に絞る
