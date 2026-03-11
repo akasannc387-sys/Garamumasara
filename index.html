@@ -11,7 +11,7 @@
 <meta property="og:description" content="Brawl Stars（ブロスタ）の試合編成や勝敗を記録し、勝率やキャラ傾向を分析できる非公式ツール。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://garamumasara.vercel.app">
-<title>ブロスタ 編成記録ツール | Brawl Stars Team Log</title>
+<title>Brawl Brain | ブロスタ 編成記録ツール | Brawl Stars Team Log</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <meta name="google-site-verification" content="hNqXS0LLFriBS5y9ITVcibk0hFtmBI1DblJU6dfiM7I" />
 <meta name="google-adsense-account" content="ca-pub-4037268088838582">
@@ -187,7 +187,7 @@ button:hover{opacity:.82;}
 </style>
 </head>
 <body>
-<h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">ブロスタ 編成記録ツール</h1>
+<h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">Brawl Brain</h1>
 <div style="width:100%;background:#0f1117;border-bottom:1px solid #2a2a2a;padding:7px 16px;box-sizing:border-box">
   <p style="font-size:10px;color:#484848;text-align:center;line-height:1.6;margin:0 auto;max-width:640px">
     Brawl Stars（ブロスタ）の試合編成・勝敗を記録して勝率やキャラ傾向を分析できる、個人用の非公式ツールです。
@@ -196,7 +196,7 @@ button:hover{opacity:.82;}
 <div class="app">
 <div class="sidebar" id="SB">
   <div class="s-head">
-    <div class="s-title">編成<span>.log</span></div>
+    <div class="s-title">Brawl<span> Brain</span></div>
     <div class="s-sub">モード / ステージ / キャラ</div>
   </div>
   <div id="OB" onclick="selOverall()" style="display:flex;align-items:center;gap:8px;padding:7px 14px;margin:4px 8px 8px;cursor:pointer;border-radius:6px;font-size:.78rem;font-weight:700;color:var(--mut);transition:all .15s;">
@@ -1263,7 +1263,7 @@ function exportData(){
   const blob=new Blob([json],{type:'application/json'});
   const date=new Date();
   const ds=`${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}`;
-  const filename=`brawl-log-${ds}.json`;
+  const filename=`brawl-brain-${ds}.json`;
   // iOS Safari対応: ObjectURLをwindow.openで開く
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
     const reader=new FileReader();
