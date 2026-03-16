@@ -356,7 +356,7 @@ button:hover{opacity:.82;}
           <div id="CL_LIST" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px"></div>
           <div id="CL_EDIT" style="display:none;margin-top:10px;border-top:1px solid var(--bdr);padding-top:10px">
             <div style="display:flex;gap:6px;margin-bottom:6px">
-              <input type="text" id="CL_INPUT" placeholder="キャラ名を入力 / タップして選択…" style="flex:1;font-size:.75rem" oninput="clInputChange()">
+              <input type="text" id="CL_INPUT" placeholder="キャラ名を入力 / タップして選択…" style="flex:1;font-size:.75rem" >
             </div>
             <div id="CL_ADD_ROW" style="display:flex;gap:6px;margin-bottom:6px">
               <button class="btns" style="font-size:.7rem;padding:4px 8px;flex:1" onclick="addMasterChar()">➕ 追加</button>
@@ -1602,22 +1602,16 @@ function selectCharTag(name){
     if(el)el.style.borderColor=c===name?'var(--acc)':'var(--bdr)';
   });
 }
-function clInputChange(){
-  if(_clSelected){
-    _clSelected=null;
-    $('CL_ADD_ROW').style.display='flex';
-    $('CL_EDIT_ROW').style.display='none';
-    masterChars.forEach(c=>{
-      const el=document.getElementById('cltag_'+c);
-      if(el)el.style.borderColor='var(--bdr)';
-    });
-  }
-}
 function renameMasterChar(){
   const newName=$('CL_INPUT').value.trim();
   if(!newName||!_clSelected)return;
   if(newName===_clSelected){_clSelected=null;$('CL_ADD_ROW').style.display='flex';$('CL_EDIT_ROW').style.display='none';return;}
-  if(masterChars.includes(newName)){showMsg('MSG','その名前はすでに存在します','err');return;}
+  if(masterChars.includes(newName)){
+    if(!confirm(`「${newName}」はすでに存在します。\n「${_clSelected}」のデータを「${newName}」に統合しますか？\n（「${_clSelected}」はキャラ一覧から削除されます）`))return;
+    // 統合：全エントリのoldをnewに置換、oldをmasterCharsから削除
+    mergeChars(_clSelected, newName);
+    return;
+  }
   const idx=masterChars.indexOf(_clSelected);
   if(idx>=0)masterChars[idx]=newName;
   saveChars();
@@ -1634,6 +1628,26 @@ function renameMasterChar(){
   $('CL_EDIT_ROW').style.display='none';
   renderCharList();
   showMsg('MSG',`「${newName}」に変更しました`,'ok');
+}
+function mergeChars(oldName, newName){
+  // 全エントリのoldをnewに置換
+  for(const g in data)for(const s in data[g]){
+    getEntries(g,s).forEach(e=>{
+      e.my=e.my.map(c=>c===oldName?newName:c);
+      e.enemy=e.enemy.map(c=>c===oldName?newName:c);
+    });
+  }
+  save();
+  // masterCharsからoldを削除
+  const idx=masterChars.indexOf(oldName);
+  if(idx>=0)masterChars.splice(idx,1);
+  saveChars();
+  _clSelected=null;
+  $('CL_INPUT').value='';
+  $('CL_ADD_ROW').style.display='flex';
+  $('CL_EDIT_ROW').style.display='none';
+  renderCharList();
+  showMsg('MSG',`「${oldName}」を「${newName}」に統合しました`,'ok');
 }
 function deleteMasterCharSelected(){
   if(!_clSelected)return;
@@ -1675,6 +1689,10 @@ function toggleCharEdit(){
   $('CL_EDIT').style.display=_charEditMode?'block':'none';
   $('CL_EDIT_BTN').textContent=_charEditMode?'✅ 完了':'✏️ 編集';
   $('CL_EDIT_BTN').style.color=_charEditMode?'var(--win)':'';
+  _clSelected=null;
+  $('CL_INPUT').value='';
+  $('CL_ADD_ROW').style.display='flex';
+  $('CL_EDIT_ROW').style.display='none';
   renderCharList();
 }
 function renderCharList(){
